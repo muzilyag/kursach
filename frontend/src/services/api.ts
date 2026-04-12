@@ -55,10 +55,35 @@ export const ApiService = {
     },
 
     async getUsers(params: Record<string, any> = {}): Promise<UsersResponse> {
-        const queryParams = new URLSearchParams(params).toString();
+        const queryParams = new URLSearchParams({
+            page: params.page || '1',
+            limit: params.limit || Config.pagination.itemsPerPage.toString(),
+            search: params.search || '',
+            sort: params.sort || 'user_id',
+            order: params.order || 'asc'
+        }).toString();
+        
         return this.request<UsersResponse>(`${Config.api.users}?${queryParams}`);
     },
 
+    async getUser(id: number | string): Promise<any> {
+        return this.request<any>(`${Config.api.users}/${id}`);
+    },
+    
+    async createUser(userData: Record<string, any>): Promise<any> {
+        return this.request<any>(Config.api.users, {
+            method: 'POST',
+            body: JSON.stringify(userData)
+        });
+    },
+    
+    async updateUser(id: number | string, userData: Record<string, any>): Promise<any> {
+        return this.request<any>(`${Config.api.users}/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(userData)
+        });
+    },
+    
     async deleteUser(id: number | string): Promise<any> {
         return this.request<any>(`${Config.api.users}/${id}`, {
             method: 'DELETE'
