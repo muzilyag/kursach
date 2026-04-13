@@ -2,264 +2,198 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ApiService } from '../services/api'
 import { Utils } from '../utils'
+import { useDataTable } from '../composables/useDataTable'
+import DataTable from '../components/DataTable.vue'
 
-const contentList = ref<any[]>([])
+const columns = [
+  { key: 'content_name', label: 'Название', sortable: true },
+  { key: 'content_type', label: 'Тип', sortable: true },
+  { key: 'content_duration', label: 'Длительность', sortable: true },
+  { key: 'genres', label: 'Жанры' },
+  { key: 'content_publish_date', label: 'Выпуск', sortable: true }
+]
+
 const genres = ref<any[]>([])
 const holders = ref<any[]>([])
-const loading = ref(true)
-const error = ref('')
-const totalContent = ref(0)
-const currentPage = ref(1)
+
+const { items, total, loading, params, pages, load, handleSort } = useDataTable(
+  (p) => ApiService.getContent(p), 
+  { sort: 'content_id', order: 'desc' }
+)
 
 const modalInstance = ref<any>(null)
 const isEditing = ref(false)
 const currentId = ref<number | null>(null)
-
 const contentForm = reactive({
   content_name: '',
   content_type: 'Фильм',
   content_duration: '01:30:00',
-  content_publish_date: new Date().toISOString().split('T')[0],
+  content_publish_date: '',
   content_discription: '',
   genre_id: '',
   copyright_holder_id: ''
 })
 
-const fetchContent = async (page = 1) => {
-  loading.value = true
+const initOptions = async () => {
   try {
-    const response = await ApiService.getContent(page)
-    contentList.value = response.content || []
-    totalContent.value = response.total || 0
-    currentPage.value = page
-  } catch (e: any) {
-    error.value = e.message || 'Ошибка загрузки контента'
-  } finally {
-    loading.value = false
-  }
+    const [g, h] = await Promise.all([ApiService.getGenres(), ApiService.getCopyrightHolders()])
+    genres.value = g
+    holders.value = h
+  } catch (e: any) { console.error(e) }
 }
 
-const fetchDictionaries = async () => {
-  try {
-    genres.value = await ApiService.getGenres()
-    holders.value = await ApiService.getCopyrightHolders()
-  } catch (e) {
-    console.error('Ошибка загрузки справочников', e)
+const openModal = (item: any = null) => {
+  isEditing.value = !!item
+  if (item) {
+    currentId.value = item.content_id
+    contentForm.content_name = item['Название']
+    contentForm.content_type = item['Тип']
+    contentForm.content_duration = item['Длительность']
+    contentForm.content_publish_date = item['Дата выпуска'] !== 'None' ? item['Дата выпуска'] : ''
+    contentForm.content_discription = item['Описание']
+    contentForm.genre_id = item.genre_id
+    contentForm.copyright_holder_id = item.copyright_holder_id
+  } else {
+    currentId.value = null
+    Object.assign(contentForm, {
+      content_name: '', content_type: 'Фильм', content_duration: '01:30:00',
+      content_publish_date: new Date().toISOString().split('T')[0],
+      content_discription: '', genre_id: '', copyright_holder_id: ''
+    })
   }
-}
-
-const openAddModal = () => {
-  isEditing.value = false
-  currentId.value = null
-  contentForm.content_name = ''
-  contentForm.content_type = 'Фильм'
-  contentForm.content_duration = '01:30:00'
-  contentForm.content_publish_date = new Date().toISOString().split('T')[0]
-  contentForm.content_discription = ''
-  contentForm.genre_id = genres.value.length > 0 ? genres.value[0].value : ''
-  contentForm.copyright_holder_id = holders.value.length > 0 ? holders.value[0].value : ''
-  
-  const el = document.getElementById('contentVueModal')
+  const el = document.getElementById('contentModal')
   if (el && (window as any).bootstrap) {
     modalInstance.value = new (window as any).bootstrap.Modal(el)
     modalInstance.value.show()
   }
 }
 
-const openEditModal = (item: any) => {
-  isEditing.value = true
-  currentId.value = item.content_id
-  contentForm.content_name = item['Название']
-  contentForm.content_type = item['Тип']
-  contentForm.content_duration = item['Длительность']
-  contentForm.content_publish_date = item['Дата выпуска'] !== 'Не указана' ? item['Дата выпуска'] : ''
-  contentForm.content_discription = item['Описание'] || ''
-
-  const firstGenre = item['Жанры'] ? item['Жанры'].split(', ')[0] : ''
-  const genreMatch = genres.value.find(g => g.label === firstGenre)
-  contentForm.genre_id = genreMatch ? genreMatch.value : (genres.value.length > 0 ? genres.value[0].value : '')
-
-  const firstHolder = item['Правообладатели'] ? item['Правообладатели'].split(', ')[0] : ''
-  const holderMatch = holders.value.find(h => h.label === firstHolder)
-  contentForm.copyright_holder_id = holderMatch ? holderMatch.value : (holders.value.length > 0 ? holders.value[0].value : '')
-
-  const el = document.getElementById('contentVueModal')
-  if (el && (window as any).bootstrap) {
-    modalInstance.value = new (window as any).bootstrap.Modal(el)
-    modalInstance.value.show()
-  }
-}
-
-const saveContent = async () => {
-  if (!contentForm.content_name) {
-    alert('Заполните обязательные поля!')
-    return
-  }
+const save = async () => {
   try {
-    if (isEditing.value && currentId.value) {
-      await ApiService.updateContent(currentId.value, { ...contentForm })
-    } else {
-      await ApiService.createContent({ ...contentForm })
-    }
-    if (modalInstance.value) modalInstance.value.hide()
-    fetchContent(currentPage.value)
-  } catch (e: any) {
-    alert(e.message || 'Ошибка сохранения')
-  }
+    if (isEditing.value && currentId.value) await ApiService.updateContent(currentId.value, contentForm)
+    else await ApiService.createContent(contentForm)
+    modalInstance.value?.hide()
+    load()
+  } catch (e: any) { alert(e.message) }
 }
 
-const deleteContent = async (id: number) => {
-  if (!confirm('Вы уверены, что хотите удалить этот контент?')) return
+const remove = async (item: any) => {
+  if (!confirm('Удалить контент?')) return
   try {
-    await ApiService.deleteContent(id)
-    fetchContent(currentPage.value)
-  } catch (e: any) {
-    alert(e.message || 'Ошибка удаления')
-  }
+    await ApiService.deleteContent(item.content_id)
+    load()
+  } catch (e: any) { alert(e.message) }
 }
 
-const changePage = (newPage: number) => {
-  const limit = 10
-  const totalPages = Math.ceil(totalContent.value / limit)
-  if (newPage >= 1 && newPage <= totalPages) {
-    fetchContent(newPage)
-  }
-}
-
-onMounted(() => {
-  fetchContent()
-  fetchDictionaries()
-})
+onMounted(initOptions)
 </script>
 
 <template>
   <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2><i class="bi bi-film me-2"></i>Каталог контента</h2>
-      <button class="btn btn-primary" @click="openAddModal">
-        <i class="bi bi-plus-lg me-2"></i>Добавить контент
-      </button>
+      <h2><i class="bi bi-film me-2"></i>Контент</h2>
+      <button class="btn btn-primary" @click="openModal(null)">Добавить</button>
     </div>
 
-    <div v-if="loading" class="text-center py-5">
-      <div class="spinner-border text-primary" role="status"></div>
-    </div>
-
-    <div v-else-if="error" class="alert alert-danger">{{ error }}</div>
-
-    <div v-else class="card shadow-sm">
-      <div class="table-responsive">
-        <table class="table table-hover mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>Название</th>
-              <th>Тип</th>
-              <th>Длительность</th>
-              <th>Жанры</th>
-              <th>Правообладатели</th>
-              <th>Дата выпуска</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in contentList" :key="item.content_id">
-              <td class="fw-medium">{{ item['Название'] }}</td>
-              <td><span class="badge bg-info">{{ item['Тип'] }}</span></td>
-              <td>{{ Utils.formatDuration(item['Длительность']) }}</td>
-              <td>{{ item['Жанры'] }}</td>
-              <td>{{ item['Правообладатели'] }}</td>
-              <td>{{ Utils.formatDate(item['Дата выпуска']) }}</td>
-              <td>
-                <button class="btn btn-sm btn-outline-secondary me-2" @click="openEditModal(item)">
-                  <i class="bi bi-pencil"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-danger" @click="deleteContent(item.content_id)">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </td>
-            </tr>
-            <tr v-if="contentList.length === 0">
-              <td colspan="7" class="text-center py-4 text-muted">Контент не найден</td>
-            </tr>
-          </tbody>
-        </table>
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <input v-model="params.search" class="form-control" placeholder="Поиск на сервере...">
       </div>
-      
-      <div class="card-footer bg-white border-top-0 pt-3 pb-3" v-if="totalContent > 10">
-        <nav aria-label="Навигация">
+    </div>
+
+    <div v-if="loading" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    
+    <div v-else class="card shadow-sm">
+      <DataTable 
+        :columns="columns" :items="items" :has-actions="true"
+        :sort-config="{ key: params.sort, order: params.order }"
+        @sort="handleSort" @edit="openModal" @delete="remove"
+      >
+        <template #cell-content_name="{ item }">{{ item['Название'] }}</template>
+        <template #cell-content_type="{ item }">
+          <span class="badge bg-info text-dark">{{ item['Тип'] }}</span>
+        </template>
+        <template #cell-content_duration="{ item }">
+          {{ Utils.formatDuration(item['Длительность']) }}
+        </template>
+        <template #cell-genres="{ item }">{{ item['Жанры'] }}</template>
+        <template #cell-content_publish_date="{ item }">
+          {{ Utils.formatDate(item['Дата выпуска']) }}
+        </template>
+      </DataTable>
+
+      <div class="card-footer bg-white py-3" v-if="total > params.limit">
+        <nav>
           <ul class="pagination justify-content-center mb-0">
-            <li class="page-item" :class="{ disabled: currentPage === 1 }">
-              <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">Назад</a>
+            <li class="page-item" :class="{ disabled: params.page === 1 }">
+              <button class="page-link" @click="params.page--"><i class="bi bi-chevron-left"></i></button>
             </li>
-            <li class="page-item" v-for="p in Math.ceil(totalContent / 10)" :key="p" :class="{ active: currentPage === p }">
-              <a class="page-link" href="#" @click.prevent="changePage(p)">{{ p }}</a>
+            <li v-for="p in pages" :key="p" class="page-item" :class="{ active: params.page === p }">
+              <button class="page-link" @click="params.page = p">{{ p }}</button>
             </li>
-            <li class="page-item" :class="{ disabled: currentPage === Math.ceil(totalContent / 10) }">
-              <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)">Вперёд</a>
+            <li class="page-item" :class="{ disabled: params.page === pages.length }">
+              <button class="page-link" @click="params.page++"><i class="bi bi-chevron-right"></i></button>
             </li>
           </ul>
         </nav>
       </div>
     </div>
 
-    <div class="modal fade" id="contentVueModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="contentModal" tabindex="-1">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">{{ isEditing ? 'Редактирование контента' : 'Новый контент' }}</h5>
+            <h5 class="modal-title">{{ isEditing ? 'Редактирование' : 'Новый контент' }}</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
-            <form @submit.prevent="saveContent">
+            <form id="contentForm" @submit.prevent="save">
               <div class="mb-3">
-                <label class="form-label">Название *</label>
-                <input type="text" class="form-control" v-model="contentForm.content_name" required>
+                <label class="form-label">Название</label>
+                <input v-model="contentForm.content_name" class="form-control" required>
               </div>
-              
-              <div class="mb-3">
-                <label class="form-label">Описание</label>
-                <textarea class="form-control" rows="3" v-model="contentForm.content_discription"></textarea>
-              </div>
-
               <div class="row">
                 <div class="col-md-6 mb-3">
-                  <label class="form-label">Тип *</label>
-                  <select class="form-select" v-model="contentForm.content_type" required>
+                  <label class="form-label">Тип</label>
+                  <select v-model="contentForm.content_type" class="form-select">
                     <option value="Фильм">Фильм</option>
                     <option value="Сериал">Сериал</option>
                   </select>
                 </div>
                 <div class="col-md-6 mb-3">
                   <label class="form-label">Жанр</label>
-                  <select class="form-select" v-model="contentForm.genre_id">
+                  <select v-model="contentForm.genre_id" class="form-select">
                     <option value="">Не выбран</option>
                     <option v-for="g in genres" :key="g.value" :value="g.value">{{ g.label }}</option>
                   </select>
                 </div>
               </div>
-              
               <div class="row">
-                <div class="col-md-4 mb-3">
-                  <label class="form-label">Правообладатель</label>
-                  <select class="form-select" v-model="contentForm.copyright_holder_id">
-                    <option value="">Не выбран</option>
-                    <option v-for="h in holders" :key="h.value" :value="h.value">{{ h.label }}</option>
-                  </select>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Длительность</label>
+                  <input v-model="contentForm.content_duration" type="time" step="1" class="form-control" required>
                 </div>
-                <div class="col-md-4 mb-3">
-                  <label class="form-label">Длительность *</label>
-                  <input type="time" step="1" class="form-control" v-model="contentForm.content_duration" required>
-                </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-6 mb-3">
                   <label class="form-label">Дата выпуска</label>
-                  <input type="date" class="form-control" v-model="contentForm.content_publish_date">
+                  <input v-model="contentForm.content_publish_date" type="date" class="form-control">
                 </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Правообладатель</label>
+                <select v-model="contentForm.copyright_holder_id" class="form-select">
+                  <option value="">Не выбран</option>
+                  <option v-for="h in holders" :key="h.value" :value="h.value">{{ h.label }}</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Описание</label>
+                <textarea v-model="contentForm.content_discription" class="form-control" rows="3"></textarea>
               </div>
             </form>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-            <button type="button" class="btn btn-primary" @click="saveContent">Сохранить</button>
+            <button type="submit" form="contentForm" class="btn btn-primary">Сохранить</button>
           </div>
         </div>
       </div>

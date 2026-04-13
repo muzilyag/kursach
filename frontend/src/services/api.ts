@@ -90,8 +90,16 @@ export const ApiService = {
         });
     },
 
-    async getContent(page: number = 1): Promise<ContentResponse> {
-        return this.request<ContentResponse>(`${Config.api.content}?page=${page}&limit=${Config.pagination.itemsPerPage}`);
+    async getContent(params: Record<string, any> = {}): Promise<ContentResponse> {
+        const queryParams = new URLSearchParams({
+            page: params.page || '1',
+            limit: params.limit || Config.pagination.itemsPerPage.toString(),
+            search: params.search || '',
+            sort: params.sort || 'content_id',
+            order: params.order || 'desc'
+        }).toString();
+        
+        return this.request<ContentResponse>(`${Config.api.content}?${queryParams}`);
     },
 
     async createContent(contentData: Record<string, any>): Promise<any> {
@@ -118,6 +126,10 @@ export const ApiService = {
         return this.request<any[]>(`${Config.api.content}/genres`);
     },
 
+    async getTags(): Promise<any[]> {
+        return this.request<any[]>(`${Config.api.content}/tags`);
+    },
+
     async getCopyrightHolders(): Promise<any[]> {
         return this.request<any[]>(`${Config.api.content}/copyright-holders`);
     },
@@ -126,9 +138,12 @@ export const ApiService = {
         const queryParams = new URLSearchParams({
             page: params.page || '1',
             limit: params.limit || Config.pagination.itemsPerPage.toString(),
+            search: params.search || '',
+            sort: params.sort || 'subscription_id',
+            order: params.order || 'desc',
             ...(params.startDate && { start_date: params.startDate }),
             ...(params.endDate && { end_date: params.endDate })
-               }).toString();
+        }).toString();
         
         return this.request<SubscriptionsResponse>(`${Config.api.subscriptions}?${queryParams}`);
     },
