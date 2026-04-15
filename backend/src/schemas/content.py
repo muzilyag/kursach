@@ -10,3 +10,4 @@ class ContentCreate(BaseModel):
     content_discription: Optional[str] = None
     genre_id: Optional[int] = None
     copyright_holder_id: Optional[int] = None
+    tag_id: Optional[int] = None

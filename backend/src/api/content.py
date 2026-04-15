@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import func, or_
 from src.core.database import get_db
 from src.schemas.content import ContentCreate
-from src.models.content import Content, Genre, CopyrightHolder
+from src.models.content import Content, Genre, CopyrightHolder, Tag
 
 router = APIRouter()
 
@@ -15,23 +15,20 @@ async def get_content(page: int = 1, limit: int = 10, search: str = "", sort: st
     
     query = select(Content).options(
         selectinload(Content.genres),
-        selectinload(Content.copyright_holders)
+        selectinload(Content.copyright_holders),
+        selectinload(Content.tags)
     )
 
     if search:
         query = query.where(
             or_(
                 Content.content_name.ilike(f"%{search}%"),
-                Content.content_discription.ilike(f"%{search}%"),
-                Content.content_type.ilike(f"%{search}%")
+                Content.content_discription.ilike(f"%{search}%")
             )
         )
 
     col = getattr(Content, sort, Content.content_id)
-    if order == "desc":
-        query = query.order_by(col.desc())
-    else:
-        query = query.order_by(col.asc())
+    query = query.order_by(col.desc() if order == "desc" else col.asc())
     
     result = await db.execute(query.offset(offset).limit(limit))
     content_list = result.scalars().all()
@@ -41,8 +38,7 @@ async def get_content(page: int = 1, limit: int = 10, search: str = "", sort: st
         count_query = count_query.where(
             or_(
                 Content.content_name.ilike(f"%{search}%"),
-                Content.content_discription.ilike(f"%{search}%"),
-                Content.content_type.ilike(f"%{search}%")
+                Content.content_discription.ilike(f"%{search}%")
             )
         )
     total_result = await db.execute(count_query)
@@ -52,6 +48,7 @@ async def get_content(page: int = 1, limit: int = 10, search: str = "", sort: st
     for c in content_list:
         genre_obj = c.genres[0] if c.genres else None
         holder_obj = c.copyright_holders[0] if c.copyright_holders else None
+        tag_obj = c.tags[0] if c.tags else None
         
         formatted_result.append({
             "content_id": c.content_id,
@@ -62,8 +59,10 @@ async def get_content(page: int = 1, limit: int = 10, search: str = "", sort: st
             "Описание": c.content_discription,
             "Жанры": genre_obj.genre_name if genre_obj else "Не указан",
             "Правообладатели": holder_obj.copyright_holder_name if holder_obj else "Не указан",
+            "Теги": tag_obj.tag_name if tag_obj else "Не указан",
             "genre_id": genre_obj.genre_id if genre_obj else "",
-            "copyright_holder_id": holder_obj.copyright_holder_id if holder_obj else ""
+            "copyright_holder_id": holder_obj.copyright_holder_id if holder_obj else "",
+            "tag_id": tag_obj.tag_id if tag_obj else ""
         })
         
     return {
@@ -88,27 +87,49 @@ async def create_content(data: ContentCreate, db: AsyncSession = Depends(get_db)
     if data.copyright_holder_id:
         holder = await db.get(CopyrightHolder, data.copyright_holder_id)
         if holder: new_content.copyright_holders = [holder]
+    if data.tag_id:
+        tag = await db.get(Tag, data.tag_id)
+        if tag: new_content.tags = [tag]
+        
     db.add(new_content)
     await db.commit()
     return {"success": True, "id": new_content.content_id}
 
 @router.put("/{content_id}")
 async def update_content(content_id: int, data: ContentCreate, db: AsyncSession = Depends(get_db)):
-    query = select(Content).options(selectinload(Content.genres), selectinload(Content.copyright_holders)).where(Content.content_id == content_id)
+    query = select(Content).options(
+        selectinload(Content.genres), 
+        selectinload(Content.copyright_holders),
+        selectinload(Content.tags)
+    ).where(Content.content_id == content_id)
+    
     result = await db.execute(query)
     content = result.scalar_one_or_none()
-    if not content: raise HTTPException(status_code=404, detail="Контент не найден")
-    content.content_name, content.content_type = data.content_name, data.content_type
-    content.content_duration, content.content_publish_date = data.content_duration, data.content_publish_date
+    
+    if not content: 
+        raise HTTPException(status_code=404, detail="Контент не найден")
+    
+    content.content_name = data.content_name
+    content.content_type = data.content_type
+    content.content_duration = data.content_duration
+    content.content_publish_date = data.content_publish_date
     content.content_discription = data.content_discription
+    
     if data.genre_id:
         genre = await db.get(Genre, data.genre_id)
         content.genres = [genre] if genre else []
     else: content.genres = []
+        
     if data.copyright_holder_id:
         holder = await db.get(CopyrightHolder, data.copyright_holder_id)
         content.copyright_holders = [holder] if holder else []
     else: content.copyright_holders = []
+
+    if data.tag_id:
+        tag = await db.get(Tag, data.tag_id)
+        content.tags = [tag] if tag else []
+    else: content.tags = []
+        
     await db.commit()
     return {"success": True, "message": "Контент обновлен"}
 
@@ -131,3 +152,9 @@ async def get_copyright_holders(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(CopyrightHolder))
     holders = result.scalars().all()
     return [{"value": h.copyright_holder_id, "label": h.copyright_holder_name} for h in holders]
+
+@router.get("/tags")
+async def get_tags(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Tag))
+    tags = result.scalars().all()
+    return [{"value": t.tag_id, "label": t.tag_name} for t in tags]

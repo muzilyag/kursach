@@ -66,7 +66,12 @@ const deleteUser = async (user: any) => {
 
     <div class="card shadow-sm mb-4">
       <div class="card-body">
-        <input v-model="params.search" class="form-control" placeholder="Поиск на сервере...">
+        <div class="input-group">
+          <input v-model="params.search" @keyup.enter="load" class="form-control" placeholder="Поиск по ФИО или Email...">
+          <button class="btn btn-primary px-4" @click="load">
+            <i class="bi bi-search me-1"></i> Найти
+          </button>
+        </div>
       </div>
     </div>
 
@@ -79,10 +84,10 @@ const deleteUser = async (user: any) => {
         @sort="handleSort" @edit="openModal" @delete="deleteUser"
       >
         <template #cell-user_birth_date="{ item }">
-          {{ Utils.calculateAge(item.user_birth_date) }} лет
+          {{ Utils.calculateAge(item.user_birth_date ?? '') }} лет
         </template>
         <template #cell-user_registration_date="{ item }">
-          {{ Utils.formatDate(item.user_registration_date) }}
+          {{ Utils.formatDate(item.user_registration_date ?? '') }}
         </template>
       </DataTable>
 
