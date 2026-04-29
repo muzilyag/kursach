@@ -2,57 +2,48 @@
 import { ref } from 'vue'
 import { ApiService } from '../services/api'
 import { Utils } from '../utils'
-import DataTable from '../components/DataTable.vue'
 
 const reportData = ref<any[]>([])
 const loading = ref(false)
-const error = ref('')
 const startDate = ref(Utils.getDateDaysAgo(30))
-const endDate = ref(new Date().toISOString().split('T')[0])
-
-const columns = [
-  { key: 'Тип подписки', label: 'Тариф' },
-  { key: 'Количество пользователей', label: 'Пользователи' },
-  { key: 'Средний прогресс просмотра (%)', label: 'Прогресс (%)' },
-  { key: 'Всего просмотров', label: 'Просмотры' },
-  { key: 'Общее время просмотра (мин)', label: 'Время (мин)' }
-]
+const endDate = ref(new Date().toISOString().split('T')[0] as string)
 
 const generate = async () => {
   loading.value = true
-  error.value = ''
   try {
     reportData.value = await ApiService.getReport({ startDate: startDate.value, endDate: endDate.value })
-  } catch (e: any) { error.value = e.message }
-  finally { loading.value = false }
-}
-
-const exportPDF = () => {
-  const { jsPDF } = (window as any).jspdf
-  const doc = new jsPDF()
-  doc.text("Activity Report", 14, 15)
-  doc.autoTable({ html: '#report-table', startY: 25 })
-  doc.save(`report_${startDate.value}_${endDate.value}.pdf`)
+  } catch (e: any) {
+    alert(e.message)
+  } finally { loading.value = false }
 }
 </script>
 
 <template>
   <div class="container-fluid">
-    <h2 class="mb-4"><i class="bi bi-bar-chart me-2"></i>Отчеты</h2>
-    <div class="card shadow-sm mb-4">
-      <div class="card-body d-flex gap-3 align-items-end">
-        <div><label class="form-label small">От</label><input type="date" v-model="startDate" class="form-control"></div>
-        <div><label class="form-label small">До</label><input type="date" v-model="endDate" class="form-control"></div>
-        <button class="btn btn-primary" @click="generate" :disabled="loading">Сформировать</button>
+    <h2 class="mb-4">Аналитический отчет</h2>
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-body d-flex gap-3 align-items-end bg-white rounded">
+        <div><label class="form-label small fw-bold text-secondary">Начало</label><input type="date" v-model="startDate" class="form-control"></div>
+        <div><label class="form-label small fw-bold text-secondary">Конец</label><input type="date" v-model="endDate" class="form-control"></div>
+        <button class="btn btn-primary shadow-sm" @click="generate" :disabled="loading">Сформировать</button>
       </div>
     </div>
 
-    <div v-if="reportData.length > 0" class="card shadow-sm">
-      <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <h6 class="mb-0">Результаты</h6>
-        <button class="btn btn-sm btn-outline-danger" @click="exportPDF">PDF</button>
+    <div v-if="reportData.length" class="card shadow-sm border-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th v-for="key in Object.keys(reportData[0])" :key="key">{{ key }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, idx) in reportData" :key="idx">
+              <td v-for="val in Object.values(row)" :key="val as string">{{ val }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <DataTable :columns="columns" :items="reportData" id="report-table" />
     </div>
   </div>
 </template>

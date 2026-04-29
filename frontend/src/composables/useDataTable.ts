@@ -1,4 +1,4 @@
-import { ref, reactive, watch, onMounted, computed } from 'vue'
+import { ref, reactive, computed } from 'vue'
 
 export type SortOrder = 'asc' | 'desc'
 
@@ -31,8 +31,8 @@ export function useDataTable(fetchFn: (params: any) => Promise<any>, initialPara
     error.value = ''
     try {
       const response = await fetchFn({ ...params })
-      items.value = response.users || response.content || response.subscriptions || response.items || []
-      total.value = response.total || 0
+      items.value = response.items || response.users || response.subscriptions || []
+      total.value = response.total || items.value.length
     } catch (e: any) {
       error.value = e.message || 'Ошибка загрузки данных'
     } finally {
@@ -41,7 +41,7 @@ export function useDataTable(fetchFn: (params: any) => Promise<any>, initialPara
   }
 
   const pages = computed(() => {
-    const totalPages = Math.ceil(total.value / params.limit)
+    const totalPages = Math.ceil(total.value / params.limit) || 1
     return Array.from({ length: totalPages }, (_, i) => i + 1)
   })
 
@@ -56,18 +56,5 @@ export function useDataTable(fetchFn: (params: any) => Promise<any>, initialPara
     load()
   }
 
-  watch(() => params.page, load)
-
-  onMounted(load)
-
-  return {
-    items,
-    total,
-    loading,
-    error,
-    params,
-    pages,
-    load,
-    handleSort
-  }
+  return { items, total, loading, error, params, pages, load, handleSort }
 }

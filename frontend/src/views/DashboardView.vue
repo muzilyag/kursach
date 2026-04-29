@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ApiService } from '../services/api'
+import type { IDashboardStats } from '../services/api'
 
-const stats = ref({
+const stats = ref<IDashboardStats>({
   users: 0,
   content: 0,
   totalSubscriptions: 0,
@@ -12,67 +13,41 @@ const stats = ref({
 })
 
 const loading = ref(true)
-const error = ref('')
 
 onMounted(async () => {
   try {
     stats.value = await ApiService.getStats()
-  } catch (e: any) {
-    error.value = e.message || 'Ошибка загрузки статистики'
-  } finally {
-    loading.value = false
-  }
+  } catch (e) {}
+  finally { loading.value = false }
 })
 </script>
 
 <template>
   <div class="container-fluid">
-    <h2 class="mb-4">Дашборд</h2>
-    
-    <div v-if="loading" class="d-flex justify-content-center">
-      <div class="spinner-border text-primary" role="status"></div>
-    </div>
-    
-    <div v-else-if="error" class="alert alert-danger">{{ error }}</div>
-    
+    <h2 class="mb-4">Обзор платформы</h2>
+    <div v-if="loading" class="text-center p-5"><div class="spinner-border text-primary"></div></div>
     <div v-else class="row g-4">
       <div class="col-md-4">
-        <div class="card bg-primary text-white h-100 shadow-sm">
+        <div class="card border-0 shadow-sm bg-primary text-white">
           <div class="card-body">
-            <h5 class="card-title"><i class="bi bi-people me-2"></i>Пользователи</h5>
-            <h2 class="display-5 fw-bold">{{ stats.users }}</h2>
+            <h6>Пользователи</h6>
+            <h3>{{ stats.users }}</h3>
           </div>
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card bg-success text-white h-100 shadow-sm">
+        <div class="card border-0 shadow-sm bg-success text-white">
           <div class="card-body">
-            <h5 class="card-title"><i class="bi bi-cash-stack me-2"></i>Выручка</h5>
-            <h2 class="display-5 fw-bold">{{ stats.totalRevenue }} ₽</h2>
+            <h6>Активные подписки</h6>
+            <h3>{{ stats.activeSubscriptions }}</h3>
           </div>
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card bg-info text-white h-100 shadow-sm">
+        <div class="card border-0 shadow-sm bg-dark text-white">
           <div class="card-body">
-            <h5 class="card-title"><i class="bi bi-play-circle me-2"></i>Всего просмотров</h5>
-            <h2 class="display-5 fw-bold">{{ stats.views }}</h2>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card bg-warning text-dark h-100 shadow-sm">
-          <div class="card-body">
-            <h5 class="card-title"><i class="bi bi-film me-2"></i>Единиц контента</h5>
-            <h2 class="display-5 fw-bold">{{ stats.content }}</h2>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="card bg-danger text-white h-100 shadow-sm">
-          <div class="card-body">
-            <h5 class="card-title"><i class="bi bi-card-checklist me-2"></i>Активные подписки</h5>
-            <h2 class="display-5 fw-bold">{{ stats.activeSubscriptions }} <span class="fs-5 fw-normal opacity-75">/ {{ stats.totalSubscriptions }}</span></h2>
+            <h6>Выручка</h6>
+            <h3>{{ stats.totalRevenue }} ₽</h3>
           </div>
         </div>
       </div>

@@ -1,3 +1,5 @@
+const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
+
 export const Config = {
     pagination: {
         itemsPerPage: 10,
@@ -19,18 +21,17 @@ export const Config = {
     } as Record<string, string>,
     statusColors: {
         'Активна': 'success',
-        'Истекла': 'secondary',
-        'active': 'success',
-        'expired': 'secondary'
+        'Истекла': 'secondary'
     } as Record<string, string>,
     api: {
-        base: '/api',
-        users: '/api/users',
-        content: '/api/content',
-        subscriptions: '/api/subscriptions',
-        reports: '/api/reports/activity',
-        stats: '/api/stats',
-        health: '/api/health',
-        genres: '/api/genres'
+        base: API_BASE,
+        users: `${API_BASE}/users`,
+        content: `${API_BASE}/content`,
+        subscriptions: `${API_BASE}/subscriptions`,
+        subscriptionTypes: `${API_BASE}/subscriptions/types`,
+        reports: `${API_BASE}/reports/activity`,
+        stats: `${API_BASE}/stats`,
+        health: `${API_BASE}/health`,
+        genres: `${API_BASE}/content/genres`
     }
 };

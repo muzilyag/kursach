@@ -22,5 +22,5 @@ class Subscribe(Base):
     subscribe_start = Column(Date, primary_key=True)
     subscribe_finish = Column(Date, nullable=False)
 
-    user = relationship("User")
+    user = relationship("User", back_populates="subscriptions")
     subscribe_type = relationship("SubscribeType", back_populates="subscriptions")

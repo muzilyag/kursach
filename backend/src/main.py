@@ -15,13 +15,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(users.router, prefix="/api/users", tags=["Users"])
-app.include_router(content.router, prefix="/api/content", tags=["Content"])
-app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
-app.include_router(subscriptions.router, prefix="/api/subscriptions", tags=["Subscriptions"])
-app.include_router(stats.router, prefix="/api/stats", tags=["Admin & Stats"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
+app.include_router(content.router, prefix="/api/v1/content", tags=["Content"])
+app.include_router(reports.router, prefix="/api/v1/reports", tags=["Reports"])
+app.include_router(subscriptions.router, prefix="/api/v1/subscriptions", tags=["Subscriptions"])
+app.include_router(stats.router, prefix="/api/v1/stats", tags=["Admin & Stats"])
 
-@app.get("/api/health", tags=["System"])
+@app.get("/api/v1/health", tags=["System"])
 async def health_check():
     try:
         async with AsyncSessionLocal() as session:

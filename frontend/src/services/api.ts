@@ -1,39 +1,87 @@
 import { Config } from '../config';
 
-export interface StatsResponse {
+export interface IUser {
+    user_id: number;
+    user_name: string;
+    user_email: string;
+    user_birth_date: string;
+    user_registration_date: string;
+}
+
+export interface IUserCreate extends Omit<IUser, 'user_id' | 'user_registration_date'> {
+    user_registration_date?: string;
+}
+
+export interface ISubscribeType {
+    subscribe_type_id: number;
+    subscribe_type_name: string;
+    subscribe_type_discription: string | null;
+    subscribe_type_max_type_quality: number;
+    subscribe_type_cost: number;
+    subscribe_type_duration: number;
+}
+
+export interface ISubscription {
+    user_id: number;
+    subscribe_type_id: number;
+    subscribe_start: string;
+    subscribe_finish: string;
+    user?: IUser;
+    subscribe_type?: ISubscribeType;
+    status: 'Активна' | 'Истекла';
+}
+
+export interface ISubscriptionChangeRequest {
+    user_id: number;
+    subscribe_type_id: number;
+    payment_method: 'карта' | 'сбп' | 'криптовалюта';
+}
+
+export interface IGenre {
+    genre_id: number;
+    genre_name: string;
+}
+
+export interface ITag {
+    tag_id: number;
+    tag_name: string;
+}
+
+export interface ICopyrightHolder {
+    copyright_holder_id: number;
+    copyright_holder_name: string;
+}
+
+export interface IContent {
+    content_id: number;
+    content_name: string;
+    content_type: string;
+    content_duration: string;
+    content_publish_date: string;
+    content_discription: string | null;
+    genres: IGenre[];
+    tags: ITag[];
+    copyright_holders: ICopyrightHolder[];
+}
+
+export interface IContentCreate {
+    content_name: string;
+    content_type: string;
+    content_duration: string;
+    content_publish_date: string;
+    content_discription?: string;
+    genre_id?: number;
+    tag_id?: number;
+    copyright_holder_id?: number;
+}
+
+export interface IDashboardStats {
     users: number;
     content: number;
     totalSubscriptions: number;
     activeSubscriptions: number;
     views: number;
     totalRevenue: number;
-}
-
-export interface UsersResponse {
-    users: any[];
-    total: number;
-    page: number;
-    pages: number;
-    sort: string;
-    order: string;
-}
-
-export interface ContentResponse {
-    content: any[];
-    total: number;
-    page: number;
-    pages: number;
-}
-
-export interface SubscriptionsResponse {
-    subscriptions: any[];
-    total: number;
-    page: number;
-    pages: number;
-    filter?: {
-        start_date: string | null;
-        end_date: string | null;
-    };
 }
 
 export const ApiService = {
@@ -48,118 +96,90 @@ export const ApiService = {
         
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
-            throw new Error(error.error || `HTTP ошибка: ${response.status}`);
+            throw new Error(error.detail || error.error || `Error: ${response.status}`);
         }
         
-        return await response.json();
+        return response.json();
     },
 
-    async getUsers(params: Record<string, any> = {}): Promise<UsersResponse> {
-        const queryParams = new URLSearchParams({
-            page: params.page || '1',
-            limit: params.limit || Config.pagination.itemsPerPage.toString(),
-            search: params.search || '',
-            sort: params.sort || 'user_id',
-            order: params.order || 'asc'
-        }).toString();
-        
-        return this.request<UsersResponse>(`${Config.api.users}?${queryParams}`);
+    async checkHealth(): Promise<boolean> {
+        return this.request(Config.api.health);
     },
 
-    async getUser(id: number | string): Promise<any> {
-        return this.request<any>(`${Config.api.users}/${id}`);
+    async getStats(): Promise<IDashboardStats> {
+        return this.request<IDashboardStats>(Config.api.stats);
     },
-    
-    async createUser(userData: Record<string, any>): Promise<any> {
-        return this.request<any>(Config.api.users, {
+
+    async getUsers(params: any): Promise<{ users: IUser[], total: number }> {
+        const query = new URLSearchParams(params).toString();
+        return this.request(`${Config.api.users}?${query}`);
+    },
+
+    async createUser(user: IUserCreate): Promise<any> {
+        return this.request(Config.api.users, {
             method: 'POST',
-            body: JSON.stringify(userData)
+            body: JSON.stringify(user)
         });
     },
-    
-    async updateUser(id: number | string, userData: Record<string, any>): Promise<any> {
-        return this.request<any>(`${Config.api.users}/${id}`, {
+
+    async updateUser(id: number, user: Partial<IUserCreate>): Promise<any> {
+        return this.request(`${Config.api.users}/${id}`, {
             method: 'PUT',
-            body: JSON.stringify(userData)
+            body: JSON.stringify(user)
         });
     },
-    
-    async deleteUser(id: number | string): Promise<any> {
-        return this.request<any>(`${Config.api.users}/${id}`, {
+
+    async deleteUser(id: number): Promise<any> {
+        return this.request(`${Config.api.users}/${id}`, {
             method: 'DELETE'
         });
     },
 
-    async getContent(params: Record<string, any> = {}): Promise<ContentResponse> {
-        const queryParams = new URLSearchParams({
-            page: params.page || '1',
-            limit: params.limit || Config.pagination.itemsPerPage.toString(),
-            search: params.search || '',
-            sort: params.sort || 'content_id',
-            order: params.order || 'desc'
-        }).toString();
-        
-        return this.request<ContentResponse>(`${Config.api.content}?${queryParams}`);
+    async getContent(params: any): Promise<{ items: IContent[], total: number }> {
+        const query = new URLSearchParams(params).toString();
+        return this.request(`${Config.api.content}?${query}`);
     },
 
-    async createContent(contentData: Record<string, any>): Promise<any> {
-        return this.request<any>(Config.api.content, {
+    async createContent(content: IContentCreate): Promise<any> {
+        return this.request(Config.api.content, {
             method: 'POST',
-            body: JSON.stringify(contentData)
+            body: JSON.stringify(content)
         });
     },
 
-    async updateContent(id: number | string, contentData: Record<string, any>): Promise<any> {
-        return this.request<any>(`${Config.api.content}/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(contentData)
-        });
-    },
-    
-    async deleteContent(id: number | string): Promise<any> {
-        return this.request<any>(`${Config.api.content}/${id}`, {
+    async deleteContent(id: number): Promise<any> {
+        return this.request(`${Config.api.content}/${id}`, {
             method: 'DELETE'
         });
     },
 
-    async getGenres(): Promise<any[]> {
-        return this.request<any[]>(`${Config.api.content}/genres`);
+    async getGenres(): Promise<IGenre[]> {
+        return this.request(Config.api.genres);
     },
 
-    async getTags(): Promise<any[]> {
-        return this.request<any[]>(`${Config.api.content}/tags`);
+    async getSubscriptions(params: any): Promise<{ subscriptions: ISubscription[] }> {
+        const query = new URLSearchParams(params).toString();
+        return this.request(`${Config.api.subscriptions}?${query}`);
     },
 
-    async getCopyrightHolders(): Promise<any[]> {
-        return this.request<any[]>(`${Config.api.content}/copyright-holders`);
-    },
-    
-    async getSubscriptions(params: Record<string, any> = {}): Promise<SubscriptionsResponse> {
-        const queryParams = new URLSearchParams({
-            page: params.page || '1',
-            limit: params.limit || Config.pagination.itemsPerPage.toString(),
-            search: params.search || '',
-            sort: params.sort || 'subscription_id',
-            order: params.order || 'desc',
-            ...(params.startDate && { start_date: params.startDate }),
-            ...(params.endDate && { end_date: params.endDate })
-        }).toString();
-        
-        return this.request<SubscriptionsResponse>(`${Config.api.subscriptions}?${queryParams}`);
-    },
-    
-    async getReport(params: { startDate?: string; endDate?: string } = {}): Promise<any[]> {
-        if (!params.startDate || !params.endDate) {
-            throw new Error('Не указан период для отчёта');
-        }
-        return this.request<any[]>(`${Config.api.reports}?start_date=${params.startDate}&end_date=${params.endDate}`);
-    },
-    
-    async getStats(): Promise<StatsResponse> {
-        return this.request<StatsResponse>(Config.api.stats);
+    async getSubscriptionTypes(): Promise<ISubscribeType[]> {
+        return this.request(Config.api.subscriptionTypes);
     },
 
-    async checkHealth(): Promise<any> {
-        return this.request<any>(`${Config.api.base}/health`);
+    async changeSubscription(payload: ISubscriptionChangeRequest): Promise<any> {
+        return this.request(`${Config.api.subscriptions}/change`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+    },
+
+    async cancelSubscription(uid: number, tid: number, date: string): Promise<any> {
+        return this.request(`${Config.api.subscriptions}/${uid}/${tid}/${date}/cancel`, {
+            method: 'PATCH'
+        });
+    },
+
+    async getReport(params: { startDate: string; endDate: string }): Promise<any[]> {
+        return this.request(`${Config.api.reports}?start_date=${params.startDate}&end_date=${params.endDate}`);
     }
 };

@@ -10,7 +10,14 @@ from src.models.content import Content, Genre, CopyrightHolder, Tag
 router = APIRouter()
 
 @router.get("")
-async def get_content(page: int = 1, limit: int = 10, search: str = "", sort: str = "content_id", order: str = "desc", db: AsyncSession = Depends(get_db)):
+async def get_content(
+    page: int = 1, 
+    limit: int = 10, 
+    search: str = "", 
+    sort: str = "content_id", 
+    order: str = "desc", 
+    db: AsyncSession = Depends(get_db)
+):
     offset = (page - 1) * limit
     
     query = select(Content).options(
@@ -42,31 +49,36 @@ async def get_content(page: int = 1, limit: int = 10, search: str = "", sort: st
             )
         )
     total_result = await db.execute(count_query)
-    total = total_result.scalar()
+    total = total_result.scalar() or 0
     
     formatted_result = []
     for c in content_list:
-        genre_obj = c.genres[0] if c.genres else None
-        holder_obj = c.copyright_holders[0] if c.copyright_holders else None
-        tag_obj = c.tags[0] if c.tags else None
-        
         formatted_result.append({
             "content_id": c.content_id,
-            "Название": c.content_name,
-            "Тип": c.content_type,
-            "Длительность": str(c.content_duration),
-            "Дата выпуска": str(c.content_publish_date) if c.content_publish_date else None,
-            "Описание": c.content_discription,
-            "Жанры": genre_obj.genre_name if genre_obj else "Не указан",
-            "Правообладатели": holder_obj.copyright_holder_name if holder_obj else "Не указан",
-            "Теги": tag_obj.tag_name if tag_obj else "Не указан",
-            "genre_id": genre_obj.genre_id if genre_obj else "",
-            "copyright_holder_id": holder_obj.copyright_holder_id if holder_obj else "",
-            "tag_id": tag_obj.tag_id if tag_obj else ""
+            "content_name": c.content_name,
+            "content_type": c.content_type,
+            "content_duration": str(c.content_duration),
+            "content_publish_date": str(c.content_publish_date) if c.content_publish_date else None,
+            "content_discription": c.content_discription,
+            "genres": [
+                {"genre_id": g.genre_id, "genre_name": g.genre_name} 
+                for g in c.genres
+            ],
+            "tags": [
+                {"tag_id": t.tag_id, "tag_name": t.tag_name} 
+                for t in c.tags
+            ],
+            "copyright_holders": [
+                {
+                    "copyright_holder_id": h.copyright_holder_id, 
+                    "copyright_holder_name": h.copyright_holder_name
+                } 
+                for h in c.copyright_holders
+            ]
         })
         
     return {
-        "content": formatted_result,
+        "items": formatted_result,
         "total": total,
         "page": page,
         "pages": (total + limit - 1) // limit
@@ -103,11 +115,8 @@ async def update_content(content_id: int, data: ContentCreate, db: AsyncSession 
         selectinload(Content.tags)
     ).where(Content.content_id == content_id)
     
-    result = await db.execute(query)
-    content = result.scalar_one_or_none()
-    
-    if not content: 
-        raise HTTPException(status_code=404, detail="Контент не найден")
+    content = (await db.execute(query)).scalar_one_or_none()
+    if not content: raise HTTPException(status_code=404, detail="Контент не найден")
     
     content.content_name = data.content_name
     content.content_type = data.content_type
@@ -144,17 +153,14 @@ async def delete_content(content_id: int, db: AsyncSession = Depends(get_db)):
 @router.get("/genres")
 async def get_genres(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Genre))
-    genres = result.scalars().all()
-    return [{"value": g.genre_id, "label": g.genre_name} for g in genres]
+    return [{"value": g.genre_id, "label": g.genre_name} for g in result.scalars().all()]
 
 @router.get("/copyright-holders")
 async def get_copyright_holders(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(CopyrightHolder))
-    holders = result.scalars().all()
-    return [{"value": h.copyright_holder_id, "label": h.copyright_holder_name} for h in holders]
+    return [{"value": h.copyright_holder_id, "label": h.copyright_holder_name} for h in result.scalars().all()]
 
 @router.get("/tags")
 async def get_tags(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Tag))
-    tags = result.scalars().all()
-    return [{"value": t.tag_id, "label": t.tag_name} for t in tags]
+    return [{"value": t.tag_id, "label": t.tag_name} for t in result.scalars().all()]

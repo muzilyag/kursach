@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Date
 from src.core.database import Base
+from sqlalchemy.orm import relationship
 import datetime
 
 class User(Base):
@@ -10,3 +11,5 @@ class User(Base):
     user_email = Column(String(100), nullable=False, unique=True)
     user_birth_date = Column(Date, nullable=False)
     user_registration_date = Column(Date, nullable=False, default=datetime.date.today)
+
+    subscriptions = relationship("Subscribe", back_populates="user")

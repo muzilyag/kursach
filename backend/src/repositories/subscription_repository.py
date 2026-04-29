@@ -9,7 +9,6 @@ class SubscriptionRepository:
 
     async def get_subscriptions(self, page: int = 1, limit: int = 10, start_date: Optional[date] = None, end_date: Optional[date] = None):
         offset = (page - 1) * limit
-        
         where_clauses = []
         params = {"limit": limit, "offset": offset}
         
@@ -21,17 +20,17 @@ class SubscriptionRepository:
             params["end_date"] = end_date
             
         where_sql = " AND ".join(where_clauses)
-        if where_sql:
-            where_sql = f"WHERE {where_sql}"
+        if where_sql: where_sql = f"WHERE {where_sql}"
             
         query = text(f"""
             SELECT 
-                ROW_NUMBER() OVER (ORDER BY s.subscribe_start DESC) as "#",
-                u.user_name as "Пользователь",
-                st.subscribe_type_name as "Тип подписки",
-                st.subscribe_type_cost as "Стоимость",
-                TO_CHAR(s.subscribe_start, 'DD.MM.YYYY') as "Дата начала",
-                TO_CHAR(s.subscribe_finish, 'DD.MM.YYYY') as "Дата окончания"
+                s.user_id,
+                s.subscribe_type_id,
+                u.user_name,
+                st.subscribe_type_name,
+                st.subscribe_type_cost,
+                s.subscribe_start,
+                s.subscribe_finish
             FROM subscribe s
             JOIN "User" u ON s.user_id = u.user_id
             JOIN subscribe_type st ON s.subscribe_type_id = st.subscribe_type_id
@@ -43,18 +42,25 @@ class SubscriptionRepository:
         count_query = text(f"SELECT COUNT(*) FROM subscribe s {where_sql}")
         
         result = await self.session.execute(query, params)
-        count_result = await self.session.execute(count_query, params)
+        rows = result.mappings().all()
+        total = (await self.session.execute(count_query, params)).scalar()
         
-        return result.mappings().all(), count_result.scalar()
+        today = date.today()
+        items = []
+        for r in rows:
+            items.append({
+                "user_id": r["user_id"],
+                "subscribe_type_id": r["subscribe_type_id"],
+                "subscribe_start": str(r["subscribe_start"]),
+                "subscribe_finish": str(r["subscribe_finish"]),
+                "status": "Активна" if r["subscribe_finish"] >= today else "Истекла",
+                "user": {"user_id": r["user_id"], "user_name": r["user_name"]},
+                "subscribe_type": {"subscribe_type_id": r["subscribe_type_id"], "subscribe_type_name": r["subscribe_type_name"]}
+            })
+            
+        return items, total
 
     async def get_subscription_types(self):
-        query = text("""
-            SELECT 
-                subscribe_type_id as value,
-                subscribe_type_name as label,
-                subscribe_type_cost as cost
-            FROM subscribe_type 
-            ORDER BY subscribe_type_id
-        """)
+        query = text("SELECT subscribe_type_id as value, subscribe_type_name as label, subscribe_type_cost as cost FROM subscribe_type ORDER BY subscribe_type_id")
         result = await self.session.execute(query)
         return result.mappings().all()
