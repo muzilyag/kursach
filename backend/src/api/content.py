@@ -153,14 +153,14 @@ async def delete_content(content_id: int, db: AsyncSession = Depends(get_db)):
 @router.get("/genres")
 async def get_genres(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Genre))
-    return [{"value": g.genre_id, "label": g.genre_name} for g in result.scalars().all()]
+    return [{"genre_id": g.genre_id, "genre_name": g.genre_name} for g in result.scalars().all()]
 
 @router.get("/copyright-holders")
 async def get_copyright_holders(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(CopyrightHolder))
-    return [{"value": h.copyright_holder_id, "label": h.copyright_holder_name} for h in result.scalars().all()]
+    return [{"copyright_holder_id": h.copyright_holder_id, "copyright_holder_name": h.copyright_holder_name} for h in result.scalars().all()]
 
 @router.get("/tags")
 async def get_tags(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Tag))
-    return [{"value": t.tag_id, "label": t.tag_name} for t in result.scalars().all()]
+    return [{"tag_id": t.tag_id, "tag_name": t.tag_name} for t in result.scalars().all()]

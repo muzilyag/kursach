@@ -27,6 +27,8 @@ export const Config = {
         base: API_BASE,
         users: `${API_BASE}/users`,
         content: `${API_BASE}/content`,
+        tags: `${API_BASE}/content/tags`,
+        copyrightHolders: `${API_BASE}/content/copyright-holders`,
         subscriptions: `${API_BASE}/subscriptions`,
         subscriptionTypes: `${API_BASE}/subscriptions/types`,
         reports: `${API_BASE}/reports/activity`,

@@ -147,6 +147,13 @@ export const ApiService = {
         });
     },
 
+    async updateContent(id: number, content: Partial<IContentCreate>): Promise<any> {
+        return this.request(`${Config.api.content}/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(content)
+        });
+    },
+
     async deleteContent(id: number): Promise<any> {
         return this.request(`${Config.api.content}/${id}`, {
             method: 'DELETE'
@@ -157,7 +164,15 @@ export const ApiService = {
         return this.request(Config.api.genres);
     },
 
-    async getSubscriptions(params: any): Promise<{ subscriptions: ISubscription[] }> {
+    async getTags(): Promise<ITag[]> {
+        return this.request(Config.api.tags);
+    },
+
+    async getCopyrightHolders(): Promise<ICopyrightHolder[]> {
+        return this.request(Config.api.copyrightHolders);
+    },
+
+    async getSubscriptions(params: any): Promise<{ subscriptions: ISubscription[], total: number }> {
         const query = new URLSearchParams(params).toString();
         return this.request(`${Config.api.subscriptions}?${query}`);
     },
