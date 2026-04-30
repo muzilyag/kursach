@@ -20,12 +20,14 @@
             </slot>
           </td>
           <td v-if="hasActions" class="text-end">
-            <button class="btn btn-sm btn-outline-primary me-2" @click="$emit('edit', item)">
-              <i class="bi bi-pencil"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-danger" @click="$emit('delete', item)">
-              <i class="bi bi-trash"></i>
-            </button>
+            <slot name="actions" :item="item">
+              <button class="btn btn-sm btn-outline-primary me-2" @click="$emit('edit', item)">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" @click="$emit('delete', item)">
+                <i class="bi bi-trash"></i>
+              </button>
+            </slot>
           </td>
         </tr>
         <tr v-if="items.length === 0">
@@ -51,8 +53,8 @@ const props = defineProps<{
 defineEmits(['sort', 'edit', 'delete'])
 
 const getSortIcon = (key: string) => {
-  if (props.sortConfig?.key !== key) return 'bi-arrow-down-up text-muted small'
-  return props.sortConfig.order === 'asc' ? 'bi-sort-up text-primary' : 'bi-sort-down text-primary'
+  if (!props.sortConfig || props.sortConfig.key !== key) return 'bi-arrow-down-up text-muted opacity-50'
+  return props.sortConfig.order === 'asc' ? 'bi-arrow-up text-primary' : 'bi-arrow-down text-primary'
 }
 </script>
 

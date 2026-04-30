@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from sqlalchemy import func, and_, exists
+from sqlalchemy import func, and_, exists, text
 from datetime import date, timedelta
 from typing import Optional
 from src.core.database import get_db
@@ -65,7 +65,6 @@ async def get_subscriptions(
     db: AsyncSession = Depends(get_db)
 ):
     offset = (page - 1) * limit
-
     query = select(Subscribe).options(
         selectinload(Subscribe.user),
         selectinload(Subscribe.subscribe_type)
@@ -79,7 +78,6 @@ async def get_subscriptions(
         conditions.append(Subscribe.subscribe_start >= start_date)
     if end_date:
         conditions.append(Subscribe.subscribe_start <= end_date)
-        
     if not show_expired:
         conditions.append(Subscribe.subscribe_finish >= date.today())
 
@@ -94,7 +92,6 @@ async def get_subscriptions(
         col = getattr(Subscribe, sort, Subscribe.subscribe_start)
 
     query = query.order_by(col.desc() if order == "desc" else col.asc())
-
     result = await db.execute(query.offset(offset).limit(limit))
     subs_list = result.scalars().all()
 
@@ -149,38 +146,15 @@ async def create_subscription(data: SubscriptionCreate, db: AsyncSession = Depen
 
 @router.post("/change")
 async def change_subscription(data: SubscriptionChange, db: AsyncSession = Depends(get_db)):
-    today = date.today()
-    
-    query = select(Subscribe).where(
-        and_(
-            Subscribe.user_id == data.user_id,
-            Subscribe.subscribe_finish >= today
-        )
-    ).order_by(Subscribe.subscribe_start.desc())
-    
-    result = await db.execute(query)
-    current_sub = result.scalars().first()
-    
-    if current_sub:
-        current_sub.subscribe_finish = today - timedelta(days=1)
-    
-    type_query = select(SubscribeType).where(SubscribeType.subscribe_type_id == data.subscribe_type_id)
-    type_result = await db.execute(type_query)
-    sub_type = type_result.scalar_one_or_none()
-
-    if not sub_type:
-        raise HTTPException(status_code=404, detail="Тип подписки не найден")
-    
-    new_sub = Subscribe(
-        user_id=data.user_id,
-        subscribe_type_id=data.subscribe_type_id,
-        subscribe_start=today,
-        subscribe_finish=today + timedelta(days=sub_type.subscribe_type_duration)
-    )
-    
-    db.add(new_sub)
-    
     try:
+        await db.execute(
+            text("CALL change_subscription_type(:u_id, :t_id, :p_method)"),
+            {
+                "u_id": data.user_id,
+                "t_id": data.subscribe_type_id,
+                "p_method": data.payment_method
+            }
+        )
         await db.commit()
         return {"success": True}
     except Exception as e:

@@ -181,6 +181,20 @@ export const ApiService = {
         return this.request(Config.api.subscriptionTypes);
     },
 
+    async createSubscription(payload: any): Promise<any> {
+        return this.request(Config.api.subscriptions, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+    },
+
+    async updateSubscription(uid: number, tid: number, start: string, payload: any): Promise<any> {
+        return this.request(`${Config.api.subscriptions}/${uid}/${tid}/${start}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        });
+    },
+
     async changeSubscription(payload: ISubscriptionChangeRequest): Promise<any> {
         return this.request(`${Config.api.subscriptions}/change`, {
             method: 'POST',
