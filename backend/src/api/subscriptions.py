@@ -30,14 +30,15 @@ async def get_users_filtered(has_active: bool, db: AsyncSession = Depends(get_db
     if has_active:
         query = select(
             User.user_id, 
-            User.user_name, 
+            User.user_name,
+            User.user_email, 
             Subscribe.subscribe_type_id
         ).join(Subscribe, Subscribe.user_id == User.user_id).where(
             Subscribe.subscribe_finish >= date.today()
         )
         result = await db.execute(query)
         return [
-            {"user_id": r[0], "user_name": r[1], "current_type_id": r[2]} 
+            {"user_id": r[0], "user_name": r[1], "user_email": r[2],"current_type_id": r[3]} 
             for r in result.all()
         ]
     else:
@@ -50,7 +51,10 @@ async def get_users_filtered(has_active: bool, db: AsyncSession = Depends(get_db
         query = select(User).where(~active_sub_exists)
         result = await db.execute(query)
         users = result.scalars().all()
-        return [{"user_id": u.user_id, "user_name": u.user_name, "current_type_id": None} for u in users]
+        return [{"user_id": u.user_id, 
+                 "user_name": u.user_name, 
+                 "user_email": u.user_email, 
+                 "current_type_id": None} for u in users]
 
 @router.get("")
 async def get_subscriptions(
@@ -130,6 +134,17 @@ async def get_subscriptions(
 
 @router.post("")
 async def create_subscription(data: SubscriptionCreate, db: AsyncSession = Depends(get_db)):
+    active_sub_check = await db.execute(
+        select(1).where(
+            and_(
+                Subscribe.user_id == data.user_id,
+                Subscribe.subscribe_finish >= date.today()
+            )
+        )
+    )
+    if active_sub_check.scalar():
+        raise HTTPException(status_code=400, detail="У пользователя уже есть активная подписка")
+
     sub = Subscribe(
         user_id=data.user_id,
         subscribe_type_id=data.subscribe_type_id,

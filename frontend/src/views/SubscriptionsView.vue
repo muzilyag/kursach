@@ -18,6 +18,7 @@ const columns = [
 
 const subTypes = ref<ISubscribeType[]>([])
 const usersList = ref<IUser[]>([])
+const availableUsers = ref<IUser[]>([])
 const showModal = ref(false)
 const isCreating = ref(false)
 
@@ -26,7 +27,7 @@ const selectedDuration = ref<number | null>(null)
 
 const { items, total, params, pages, load, handleSort } = useDataTable(
   (p) => ApiService.getSubscriptions(p),
-  { sort: 'subscribe_start', order: 'desc' }
+  { sort: 'subscribe_start', order: 'desc', show_expired: false }
 )
 
 const changeForm = reactive<ISubscriptionChangeRequest>({
@@ -65,16 +66,25 @@ watch(selectedFullType, (newType) => {
   }
 })
 
-const openModal = (isCreate: boolean, sub: ISubscription | null = null) => {
+const openModal = async (isCreate: boolean, sub: ISubscription | null = null) => {
   isCreating.value = isCreate
-  if (sub) {
-    changeForm.user_id = sub.user_id
-    selectedTierName.value = sub.subscribe_type?.subscribe_type_name || ''
-    selectedDuration.value = sub.subscribe_type?.subscribe_type_duration || null
-  } else {
+  
+  if (isCreate) {
+    try {
+      const res = await ApiService.getFilteredUsers({ has_active: false })
+      availableUsers.value = res
+    } catch (e) {
+      console.error(e)
+    }
     changeForm.user_id = 0
     selectedTierName.value = availableTiers.value[0] || ''
     selectedDuration.value = null
+  } else {
+    if (sub) {
+      changeForm.user_id = sub.user_id
+      selectedTierName.value = sub.subscribe_type?.subscribe_type_name || ''
+      selectedDuration.value = sub.subscribe_type?.subscribe_type_duration || null
+    }
   }
   showModal.value = true
 }
@@ -89,7 +99,6 @@ const submitForm = async () => {
     if (isCreating.value) {
       const startDate = new Date()
       const finishDate = new Date()
-      
       if (selectedFullType.value) {
         finishDate.setDate(startDate.getDate() + selectedFullType.value.subscribe_type_duration)
       }
@@ -158,7 +167,15 @@ onMounted(async () => {
 
     <div class="card shadow-sm border-0">
       <div class="card-header bg-white p-3">
-        <input v-model="params.search" @input="load" type="text" class="form-control w-25" placeholder="Поиск...">
+        <div class="d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-3">
+            <input v-model="params.search" @input="load" type="text" class="form-control" style="width: 250px" placeholder="Поиск...">
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="expiredSwitch" v-model="params.show_expired" @change="load">
+              <label class="form-check-label small text-muted" for="expiredSwitch">Показать истёкшие</label>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="card-body p-0">
         <DataTable 
@@ -196,11 +213,12 @@ onMounted(async () => {
         <div v-if="isCreating" class="mb-3">
           <label class="form-label small fw-bold">Пользователь</label>
           <select v-model="changeForm.user_id" class="form-select" required>
-            <option :value="0" disabled>Выберите пользователя</option>
-            <option v-for="u in usersList" :key="u.user_id" :value="u.user_id">
-              {{ u.user_name }} ({{ u.user_email }})
+            <option :value="0" disabled>Выберите пользователя...</option>
+            <option v-for="u in availableUsers" :key="u.user_id" :value="u.user_id">
+              {{ u.user_name }} ({{ u.user_email || 'Email не указан' }})
             </option>
           </select>
+          <div v-if="availableUsers && availableUsers.length === 0" class="form-text text-danger">Нет доступных пользователей без подписок.</div>
         </div>
         <div v-else class="mb-3">
           <label class="form-label small fw-bold">Пользователь</label>
@@ -244,7 +262,7 @@ onMounted(async () => {
       </form>
       <template #footer>
          <button type="button" class="btn btn-light" @click="closeModal">Отмена</button>
-         <button type="submit" form="subActionForm" class="btn btn-primary px-4" :disabled="!selectedFullType">Подтвердить</button>
+         <button type="submit" form="subActionForm" class="btn btn-primary px-4" :disabled="!selectedFullType || changeForm.user_id === 0">Подтвердить</button>
       </template>
     </Modal>
   </div>

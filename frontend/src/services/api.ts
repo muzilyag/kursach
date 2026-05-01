@@ -115,6 +115,11 @@ export const ApiService = {
         return this.request(`${Config.api.users}?${query}`);
     },
 
+    async getFilteredUsers(params: any): Promise<IUser[]> {
+        const query = new URLSearchParams(params).toString();
+        return this.request(`${Config.api.subscriptions}/users-filtered?${query}`);
+    },
+
     async createUser(user: IUserCreate): Promise<any> {
         return this.request(Config.api.users, {
             method: 'POST',
