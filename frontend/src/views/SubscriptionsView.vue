@@ -169,9 +169,9 @@ onMounted(async () => {
       <div class="card-header bg-white p-3">
         <div class="d-flex align-items-center justify-content-between">
           <div class="d-flex align-items-center gap-3">
-            <input v-model="params.search" @input="load" type="text" class="form-control" style="width: 250px" placeholder="Поиск...">
+            <input v-model="params.search" type="text" class="form-control" style="width: 250px" placeholder="Поиск...">
             <div class="form-check form-switch mb-0">
-              <input class="form-check-input" type="checkbox" id="expiredSwitch" v-model="params.show_expired" @change="load">
+              <input class="form-check-input" type="checkbox" id="expiredSwitch" v-model="params.show_expired">
               <label class="form-check-label small text-muted" for="expiredSwitch">Показать истёкшие</label>
             </div>
           </div>
@@ -196,12 +196,15 @@ onMounted(async () => {
           </template>
           
           <template #actions="{ item }">
+            <template v-if="item.status === 'Активна'">
               <button class="btn btn-sm btn-outline-primary me-2" @click="openModal(false, item)" title="Сменить тариф">
                 <i class="bi bi-arrow-repeat"></i>
               </button>
-              <button v-if="item.status === 'Активна'" class="btn btn-sm btn-outline-danger" @click="cancelSub(item)" title="Аннулировать">
+              <button class="btn btn-sm btn-outline-danger" @click="cancelSub(item)" title="Аннулировать">
                 <i class="bi bi-slash-circle"></i>
               </button>
+            </template>
+            <span v-else class="text-muted small italic">Действия недоступны</span>
           </template>
         </DataTable>
       </div>
@@ -218,7 +221,7 @@ onMounted(async () => {
               {{ u.user_name }} ({{ u.user_email || 'Email не указан' }})
             </option>
           </select>
-          <div v-if="availableUsers && availableUsers.length === 0" class="form-text text-danger">Нет доступных пользователей без подписок.</div>
+          <div v-if="availableUsers && availableUsers.length === 0" class="form-text text-danger">Нет доступных пользователей без активных подписок.</div>
         </div>
         <div v-else class="mb-3">
           <label class="form-label small fw-bold">Пользователь</label>

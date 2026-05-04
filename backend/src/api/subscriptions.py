@@ -26,7 +26,7 @@ async def get_subscription_types(db: AsyncSession = Depends(get_db)):
     } for t in types]
 
 @router.get("/users-filtered")
-async def get_users_filtered(has_active: bool, db: AsyncSession = Depends(get_db)):
+async def get_users_filtered(has_active: bool, limit: int = 1000, db: AsyncSession = Depends(get_db)):
     if has_active:
         query = select(
             User.user_id, 
@@ -35,10 +35,10 @@ async def get_users_filtered(has_active: bool, db: AsyncSession = Depends(get_db
             Subscribe.subscribe_type_id
         ).join(Subscribe, Subscribe.user_id == User.user_id).where(
             Subscribe.subscribe_finish >= date.today()
-        )
+        ).limit(limit)
         result = await db.execute(query)
         return [
-            {"user_id": r[0], "user_name": r[1], "user_email": r[2],"current_type_id": r[3]} 
+            {"user_id": r[0], "user_name": r[1], "user_email": r[2], "current_type_id": r[3]} 
             for r in result.all()
         ]
     else:
@@ -48,7 +48,7 @@ async def get_users_filtered(has_active: bool, db: AsyncSession = Depends(get_db
                 Subscribe.subscribe_finish >= date.today()
             )
         )
-        query = select(User).where(~active_sub_exists)
+        query = select(User).where(~active_sub_exists).limit(limit)
         result = await db.execute(query)
         users = result.scalars().all()
         return [{"user_id": u.user_id, 
@@ -148,7 +148,7 @@ async def create_subscription(data: SubscriptionCreate, db: AsyncSession = Depen
     sub = Subscribe(
         user_id=data.user_id,
         subscribe_type_id=data.subscribe_type_id,
-        subscribe_start=data.subscribe_start,
+        subscribe_start=data.user_registration_date if hasattr(data, 'user_registration_date') else date.today(),
         subscribe_finish=data.subscribe_finish
     )
     db.add(sub)
