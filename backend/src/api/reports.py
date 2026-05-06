@@ -6,23 +6,34 @@ from src.repositories.report_repository import ReportRepository
 
 router = APIRouter()
 
-@router.get("/activity")
-async def get_activity_report(
-    start_date: date = Query(..., description="Начальная дата (YYYY-MM-DD)"),
-    end_date: date = Query(..., description="Конечная дата (YYYY-MM-DD)"),
+@router.get("/seasonality")
+async def get_seasonality_report(
+    year: int = Query(2022, description="Год для анализа (в вашей базе это 2022 или 2023)"),
     db: AsyncSession = Depends(get_db)
 ):
-    if start_date > end_date:
-        raise HTTPException(
-            status_code=400, 
-            detail="Дата начала должна быть раньше даты окончания"
-        )
-        
     repo = ReportRepository(db)
-    
     try:
-        report_data = await repo.get_activity_report(start_date, end_date)
-        return report_data
+        return await repo.get_seasonality_report(year)
     except Exception as e:
-        print(f"Ошибка при генерации отчёта: {e}")
-        return []
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/activity")
+async def get_activity_report(
+    db: AsyncSession = Depends(get_db)
+):
+    repo = ReportRepository(db)
+    try:
+        return await repo.get_activity_report()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/revenue")
+async def get_revenue_report(
+    target_date: date = Query(..., description="Дата для выбора месяца (YYYY-MM-DD)"),
+    db: AsyncSession = Depends(get_db)
+):
+    repo = ReportRepository(db)
+    try:
+        return await repo.get_revenue_report(target_date)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

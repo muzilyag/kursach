@@ -84,6 +84,24 @@ export interface IDashboardStats {
     totalRevenue: number;
 }
 
+export interface ISeasonalityReport {
+    month: string;
+    genre_name: string;
+    total_views: number;
+}
+
+export interface IActivityReport {
+    user_name: string;
+    total_views: number;
+    has_active_subscription: boolean;
+}
+
+export interface IRevenueReport {
+    subscribe_type_name: string;
+    subscriptions_count: number;
+    total_revenue: number;
+}
+
 export const ApiService = {
     async request<T = any>(url: string, options: RequestInit = {}): Promise<T> {
         const response = await fetch(url, {
@@ -213,7 +231,15 @@ export const ApiService = {
         });
     },
 
-    async getReport(params: { startDate: string; endDate: string }): Promise<any[]> {
-        return this.request(`${Config.api.reports}?start_date=${params.startDate}&end_date=${params.endDate}`);
+    async getSeasonalityReport(year: number): Promise<ISeasonalityReport[]> {
+        return this.request(`${Config.api.reports}/seasonality?year=${year}`);
+    },
+
+    async getActivityReport(): Promise<IActivityReport[]> {
+        return this.request(`${Config.api.reports}/activity`);
+    },
+
+    async getRevenueReport(date: string): Promise<IRevenueReport[]> {
+        return this.request(`${Config.api.reports}/revenue?target_date=${date}`);
     }
 };

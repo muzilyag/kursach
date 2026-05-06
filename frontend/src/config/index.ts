@@ -31,7 +31,7 @@ export const Config = {
         copyrightHolders: `${API_BASE}/content/copyright-holders`,
         subscriptions: `${API_BASE}/subscriptions`,
         subscriptionTypes: `${API_BASE}/subscriptions/types`,
-        reports: `${API_BASE}/reports/activity`,
+        reports: `${API_BASE}/reports`,
         stats: `${API_BASE}/stats`,
         health: `${API_BASE}/health`,
         genres: `${API_BASE}/content/genres`
