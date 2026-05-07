@@ -31,10 +31,17 @@ export function useDataTable(fetchFn: (params: any) => Promise<any>, initialPara
     error.value = ''
     try {
       const response = await fetchFn({ ...params })
-      items.value = response.items || response.users || response.subscriptions || []
-      total.value = response.total || 0
+      if (Array.isArray(response)) {
+        items.value = response
+        total.value = response.length
+      } else {
+        items.value = response.items || response.users || response.subscriptions || []
+        total.value = response.total || 0
+      }
     } catch (e: any) {
-      error.value = e.message || 'Ошибка загрузки данных'
+      error.value = e.message === 'Forbidden' 
+        ? 'Доступ запрещен' 
+        : (e.message || 'Ошибка загрузки данных')
       items.value = []
       total.value = 0
     } finally {

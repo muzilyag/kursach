@@ -25,6 +25,7 @@ export const Config = {
     } as Record<string, string>,
     api: {
         base: API_BASE,
+        auth: `${API_BASE}/auth`,
         users: `${API_BASE}/users`,
         content: `${API_BASE}/content`,
         tags: `${API_BASE}/content/tags`,

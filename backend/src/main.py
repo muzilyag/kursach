@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from src.core.database import AsyncSessionLocal
-from src.api import users, content, reports, subscriptions, stats
+from src.api import users, content, reports, subscriptions, stats, auth
 from src.core.config import settings
 
 app = FastAPI(title="Online Cinema API", version="2.0.0")
@@ -20,6 +20,7 @@ app.include_router(content.router, prefix="/api/v1/content", tags=["Content"])
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["Reports"])
 app.include_router(subscriptions.router, prefix="/api/v1/subscriptions", tags=["Subscriptions"])
 app.include_router(stats.router, prefix="/api/v1/stats", tags=["Admin & Stats"])
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 
 @app.get("/api/v1/health", tags=["System"])
 async def health_check():

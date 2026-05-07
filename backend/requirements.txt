@@ -8,3 +8,5 @@ alembic
 python-dotenv
 email-validator
 flake8
+bcrypt
+PyJWT

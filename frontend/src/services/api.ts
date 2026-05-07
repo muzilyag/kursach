@@ -6,10 +6,22 @@ export interface IUser {
     user_email: string;
     user_birth_date: string;
     user_registration_date: string;
+    user_role?: string;
 }
 
 export interface IUserCreate extends Omit<IUser, 'user_id' | 'user_registration_date'> {
+    user_password?: string;
     user_registration_date?: string;
+}
+
+export interface ILoginRequest {
+    identifier: string;
+    password: string;
+}
+
+export interface IAuthResponse {
+    access_token: string;
+    token_type: string;
 }
 
 export interface ISubscribeType {
@@ -103,21 +115,72 @@ export interface IRevenueReport {
 }
 
 export const ApiService = {
+    getRoleFromToken(): string | null {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1] ?? ''));
+            return payload.role || null;
+        } catch (e) {
+            return null;
+        }
+    },
+
     async request<T = any>(url: string, options: RequestInit = {}): Promise<T> {
-        const response = await fetch(url, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            ...options
-        });
+        const token = localStorage.getItem('token');
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+            ...(options.headers as Record<string, string>)
+        };
+
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(url, { ...options, headers });
         
+        if (response.status === 401) {
+            localStorage.removeItem('token');
+            if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+                window.location.href = '/login';
+            }
+        }
+
+        if (response.status === 403) {
+            throw new Error("Forbidden");
+        }
+
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
             throw new Error(error.detail || error.error || `Error: ${response.status}`);
         }
         
         return response.json();
+    },
+
+    async register(user: IUserCreate): Promise<IUser> {
+        return this.request(`${Config.api.auth}/register`, {
+            method: 'POST',
+            body: JSON.stringify(user)
+        });
+    },
+
+    async login(credentials: ILoginRequest): Promise<IAuthResponse> {
+        const data = await this.request<IAuthResponse>(`${Config.api.auth}/login`, {
+            method: 'POST',
+            body: JSON.stringify(credentials)
+        });
+        localStorage.setItem('token', data.access_token);
+        return data;
+    },
+
+    logout() {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+    },
+
+    async getMe(): Promise<IUser> {
+        return this.request(`${Config.api.users}/me`);
     },
 
     async checkHealth(): Promise<boolean> {
