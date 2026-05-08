@@ -1,11 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import DashboardView from '../views/DashboardView.vue'
+import CatalogView from '../views/CatalogView.vue'
 
 const getRole = () => {
   const token = localStorage.getItem('token')
   if (!token) return null
   try {
-    return JSON.parse(atob(token.split('.')[1] ?? '')).role
+    const payload = JSON.parse(atob(token.split('.')[1] ?? ''))
+    return payload.role || null
   } catch (e) {
     return null
   }
@@ -27,13 +29,20 @@ const router = createRouter({
       meta: { public: true }
     },
     {
-      path: '/client',
-      name: 'client',
-      component: () => import('../views/ClientStubView.vue'),
-      meta: { allowedRoles: ['user'] }
+      path: '/catalog',
+      name: 'catalog',
+      component: CatalogView,
+      meta: { public: true }
     },
     {
       path: '/',
+      redirect: () => {
+        const role = getRole()
+        return role === 'admin' ? '/admin/dashboard' : '/catalog'
+      }
+    },
+    {
+      path: '/admin/dashboard',
       name: 'dashboard',
       component: DashboardView,
       meta: { allowedRoles: ['admin'] }
@@ -65,38 +74,27 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach((to) => {
+router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
   const role = getRole()
 
   if (to.meta.public) {
-    if (token) {
-      if (role === 'user') return '/client'
-      if (role === 'content_manager') return '/content'
-      return '/'
+    if (token && (to.name === 'login' || to.name === 'register')) {
+      return next(role === 'admin' ? '/admin/dashboard' : '/catalog')
     }
-    return true
+    return next()
   }
 
   if (!token) {
-    return '/login'
-  }
-
-  if (to.path === '/' && role === 'content_manager') {
-    return '/content'
-  }
-
-  if (to.path === '/' && role === 'user') {
-    return '/client'
+    return next('/login')
   }
 
   const allowedRoles = to.meta.allowedRoles as string[]
-  if (allowedRoles && !allowedRoles.includes(role)) {
-    alert(`Доступ запрещен. Ваша роль (${role}) не имеет прав.`)
-    return false
+  if (allowedRoles && !allowedRoles.includes(role || '')) {
+    return next('/catalog')
   }
 
-  return true
+  next()
 })
 
 export default router

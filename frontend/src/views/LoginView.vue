@@ -19,7 +19,7 @@ const handleLogin = async () => {
     await ApiService.login(form);
     const role = ApiService.getRoleFromToken();
     if (role === 'user') {
-      router.push('/client');
+      router.push('/catalog');
     } else if (role === 'content_manager') {
       router.push('/content');
     } else {

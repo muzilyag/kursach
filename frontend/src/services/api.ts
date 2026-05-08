@@ -119,7 +119,10 @@ export const ApiService = {
         const token = localStorage.getItem('token');
         if (!token) return null;
         try {
-            const payload = JSON.parse(atob(token.split('.')[1] ?? ''));
+            const base64Url = token.split('.')[1];
+            if (!base64Url) return null;
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const payload = JSON.parse(window.atob(base64));
             return payload.role || null;
         } catch (e) {
             return null;
@@ -154,9 +157,6 @@ export const ApiService = {
         
         if (response.status === 401) {
             localStorage.removeItem('token');
-            if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
-                window.location.href = '/login';
-            }
         }
 
         if (response.status === 403) {
@@ -189,7 +189,7 @@ export const ApiService = {
 
     logout() {
         localStorage.removeItem('token');
-        window.location.href = '/login';
+        window.location.href = '/';
     },
 
     async getMe(): Promise<IUser> {
