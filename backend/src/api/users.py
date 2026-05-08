@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
-from typing import List
+from typing import List, Optional
 
 from src.core.database import get_db
 from src.repositories.user_repository import UserRepository
@@ -12,10 +12,18 @@ from src.core.security import RoleChecker, get_password_hash, get_current_user
 router = APIRouter()
 
 @router.get("", dependencies=[Depends(RoleChecker(["admin"]))])
-async def get_users(page: int = 1, limit: int = 10, search: str = "", sort: str = "user_id", order: str = "asc", db: AsyncSession = Depends(get_db)):
+async def get_users(
+    page: int = 1, 
+    limit: int = 10, 
+    search: str = "", 
+    sort: str = "user_id", 
+    order: str = "asc", 
+    roles: Optional[List[str]] = Query(None),
+    db: AsyncSession = Depends(get_db)
+):
     repo = UserRepository(db)
-    users = await repo.get_all(page, limit, search, sort, order)
-    total = await repo.get_count(search)
+    users = await repo.get_all(page, limit, search, sort, order, roles)
+    total = await repo.get_count(search, roles)
     
     return {
         "users": users,

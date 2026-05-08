@@ -65,38 +65,38 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to) => {
   const token = localStorage.getItem('token')
   const role = getRole()
 
   if (to.meta.public) {
     if (token) {
-      if (role === 'user') return next('/client')
-      if (role === 'content_manager') return next('/content')
-      return next('/')
+      if (role === 'user') return '/client'
+      if (role === 'content_manager') return '/content'
+      return '/'
     }
-    return next()
+    return true
   }
 
   if (!token) {
-    return next('/login')
+    return '/login'
   }
 
   if (to.path === '/' && role === 'content_manager') {
-    return next('/content')
+    return '/content'
   }
 
   if (to.path === '/' && role === 'user') {
-    return next('/client')
+    return '/client'
   }
 
   const allowedRoles = to.meta.allowedRoles as string[]
   if (allowedRoles && !allowedRoles.includes(role)) {
-    alert(`Доступ запрещен. Ваша роль (${role}) не имеет прав для просмотра этого раздела.`)
-    return next(false)
+    alert(`Доступ запрещен. Ваша роль (${role}) не имеет прав.`)
+    return false
   }
 
-  next()
+  return true
 })
 
 export default router

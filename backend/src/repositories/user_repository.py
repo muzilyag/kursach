@@ -1,13 +1,14 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import or_, desc, asc
+from sqlalchemy import or_, desc, asc, func
 from src.models.user import User
+from typing import List, Optional
 
 class UserRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_all(self, page: int = 1, limit: int = 10, search: str = "", sort_by: str = "user_id", order: str = "asc"):
+    async def get_all(self, page: int = 1, limit: int = 10, search: str = "", sort_by: str = "user_id", order: str = "asc", roles: Optional[List[str]] = None):
         offset = (page - 1) * limit
         query = select(User)
 
@@ -19,6 +20,9 @@ class UserRepository:
                 )
             )
 
+        if roles:
+            query = query.where(User.user_role.in_(roles))
+
         sort_column = getattr(User, sort_by, User.user_id)
         if order == "desc":
             query = query.order_by(desc(sort_column))
@@ -29,8 +33,7 @@ class UserRepository:
         result = await self.session.execute(query)
         return result.scalars().all()
 
-    async def get_count(self, search: str = ""):
-        from sqlalchemy import func
+    async def get_count(self, search: str = "", roles: Optional[List[str]] = None):
         query = select(func.count()).select_from(User)
         if search:
             query = query.where(
@@ -39,6 +42,10 @@ class UserRepository:
                     User.user_email.ilike(f"%{search}%")
                 )
             )
+        
+        if roles:
+            query = query.where(User.user_role.in_(roles))
+            
         result = await self.session.execute(query)
         return result.scalar()
 

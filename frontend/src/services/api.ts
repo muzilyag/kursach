@@ -126,6 +126,19 @@ export const ApiService = {
         }
     },
 
+    buildQuery(params: any): string {
+        const searchParams = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+            if (value === undefined || value === null || value === '') return;
+            if (Array.isArray(value)) {
+                value.forEach(v => searchParams.append(key, v));
+            } else {
+                searchParams.append(key, value.toString());
+            }
+        });
+        return searchParams.toString();
+    },
+
     async request<T = any>(url: string, options: RequestInit = {}): Promise<T> {
         const token = localStorage.getItem('token');
         const headers: Record<string, string> = {
@@ -192,12 +205,12 @@ export const ApiService = {
     },
 
     async getUsers(params: any): Promise<{ users: IUser[], total: number }> {
-        const query = new URLSearchParams(params).toString();
+        const query = this.buildQuery(params);
         return this.request(`${Config.api.users}?${query}`);
     },
 
     async getFilteredUsers(params: any): Promise<IUser[]> {
-        const query = new URLSearchParams(params).toString();
+        const query = this.buildQuery(params);
         return this.request(`${Config.api.subscriptions}/users-filtered?${query}`);
     },
 
@@ -222,7 +235,7 @@ export const ApiService = {
     },
 
     async getContent(params: any): Promise<{ items: IContent[], total: number }> {
-        const query = new URLSearchParams(params).toString();
+        const query = this.buildQuery(params);
         return this.request(`${Config.api.content}?${query}`);
     },
 
@@ -259,7 +272,7 @@ export const ApiService = {
     },
 
     async getSubscriptions(params: any): Promise<{ subscriptions: ISubscription[], total: number }> {
-        const query = new URLSearchParams(params).toString();
+        const query = this.buildQuery(params);
         return this.request(`${Config.api.subscriptions}?${query}`);
     },
 
