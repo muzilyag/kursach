@@ -63,12 +63,24 @@ const handleLogout = () => {
   </div>
 
   <div v-else class="d-flex min-vh-100" style="background-color: var(--light-bg);">
-    <aside v-if="isStaff" class="sidebar d-flex flex-column p-3 vh-100 position-fixed" style="background-color: var(--sidebar-bg); color: var(--sidebar-text-light);">
-      <RouterLink to="/" class="d-flex align-items-center mb-4 text-decoration-none" style="color: var(--sidebar-text-light);">
+    <aside v-if="userRole" class="sidebar d-flex flex-column p-3 vh-100 position-fixed" style="background-color: var(--sidebar-bg); color: var(--sidebar-text-light);">
+      <RouterLink to="/catalog" class="d-flex align-items-center mb-4 text-decoration-none" style="color: var(--sidebar-text-light);">
         <i class="bi bi-film fs-3 me-2" style="color: var(--sidebar-primary);"></i>
         <span class="fs-4 fw-bold">MishlenKino</span>
       </RouterLink>
       <ul class="nav nav-pills flex-column mb-auto">
+        <li class="nav-item">
+          <RouterLink to="/profile" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
+            <i class="bi bi-person-circle me-2"></i>
+            Профиль
+          </RouterLink>
+        </li>
+        <li class="nav-item">
+          <RouterLink to="/catalog" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
+            <i class="bi bi-grid me-2"></i>
+            Каталог
+          </RouterLink>
+        </li>
         <li class="nav-item" v-if="userRole === 'admin'">
           <RouterLink to="/admin/dashboard" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
             <i class="bi bi-speedometer2 me-2"></i>
@@ -112,9 +124,9 @@ const handleLogout = () => {
       </div>
     </aside>
 
-    <main class="main-content flex-grow-1" :style="{ marginLeft: isStaff ? '280px' : '0' }">
+    <main class="main-content flex-grow-1" :style="{ marginLeft: userRole ? '280px' : '0' }">
       <header class="header d-flex justify-content-between align-items-center p-3 mb-4 shadow-sm" style="background-color: var(--card-bg); border-bottom: 1px solid var(--border-color);">
-        <RouterLink to="/" class="text-decoration-none d-flex align-items-center">
+        <RouterLink to="/catalog" class="text-decoration-none d-flex align-items-center">
             <i class="bi bi-film fs-4 me-2" style="color: var(--sidebar-primary);"></i>
             <h4 class="m-0 fw-bold" style="color: var(--text-darker);">MishlenKino</h4>
         </RouterLink>
@@ -132,7 +144,9 @@ const handleLogout = () => {
               </div>
               <button @click="handleLogout" class="btn btn-link p-0 text-decoration-none small" style="color: var(--danger-color);">Выйти</button>
             </div>
-            <img :src="`https://ui-avatars.com/api/?name=${currentUser?.user_name || 'U'}&background=8b7355&color=fff`" width="40" height="40" class="rounded-circle border" style="border-color: var(--border-color) !important;">
+            <RouterLink to="/profile">
+              <img :src="`https://ui-avatars.com/api/?name=${currentUser?.user_name || 'U'}&background=8b7355&color=fff`" width="40" height="40" class="rounded-circle border" style="border-color: var(--border-color) !important;">
+            </RouterLink>
           </div>
         </div>
       </header>

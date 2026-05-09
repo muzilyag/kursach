@@ -24,6 +24,11 @@ export interface IAuthResponse {
     token_type: string;
 }
 
+export interface IPasswordChangeRequest {
+    old_password: string;
+    new_password: string;
+}
+
 export interface ISubscribeType {
     subscribe_type_id: number;
     subscribe_type_name: string;
@@ -196,6 +201,13 @@ export const ApiService = {
         return this.request(`${Config.api.users}/me`);
     },
 
+    async updateMe(user: Partial<IUserCreate>): Promise<any> {
+        return this.request(`${Config.api.users}/me`, {
+            method: 'PATCH',
+            body: JSON.stringify(user)
+        });
+    },
+
     async checkHealth(): Promise<boolean> {
         return this.request(Config.api.health);
     },
@@ -225,6 +237,13 @@ export const ApiService = {
         return this.request(`${Config.api.users}/${id}`, {
             method: 'PUT',
             body: JSON.stringify(user)
+        });
+    },
+
+    async changePassword(payload: IPasswordChangeRequest): Promise<any> {
+        return this.request(`${Config.api.users}/me/password`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload)
         });
     },
 
