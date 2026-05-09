@@ -27,7 +27,7 @@ const selectedDuration = ref<number | null>(null)
 
 const { items, total, params, pages, load, handleSort } = useDataTable(
   (p) => ApiService.getSubscriptions(p),
-  { sort: 'subscribe_start', order: 'desc', show_expired: false }
+  { sort: 'subscribe_start', order: 'desc', show_expired: false, limit: 10 }
 )
 
 const changeForm = reactive<ISubscriptionChangeRequest>({
@@ -182,6 +182,8 @@ onMounted(async () => {
           :columns="columns" 
           :items="items" 
           :has-actions="true" 
+          :current-page="params.page"
+          :page-size="params.limit"
           :sort-config="{ key: params.sort, order: params.order }"
           @sort="handleSort"
         >
@@ -208,7 +210,9 @@ onMounted(async () => {
           </template>
         </DataTable>
       </div>
-      <Pagination :current-page="params.page" :pages="pages" :total="total" @update:page="(p) => { params.page = p; load(); }" />
+      <div class="card-footer bg-white border-top-0">
+        <Pagination :current-page="params.page" :pages="pages" :total="total" @update:page="(p) => { params.page = p; load(); }" />
+      </div>
     </div>
 
     <Modal :show="showModal" :title="isCreating ? 'Новая подписка' : 'Смена тарифа'" @close="closeModal">
@@ -264,8 +268,8 @@ onMounted(async () => {
         </div>
       </form>
       <template #footer>
-         <button type="button" class="btn btn-light" @click="closeModal">Отмена</button>
-         <button type="submit" form="subActionForm" class="btn btn-primary px-4" :disabled="!selectedFullType || changeForm.user_id === 0">Подтвердить</button>
+          <button type="button" class="btn btn-light" @click="closeModal">Отмена</button>
+          <button type="submit" form="subActionForm" class="btn btn-primary px-4" :disabled="!selectedFullType || changeForm.user_id === 0">Подтвердить</button>
       </template>
     </Modal>
   </div>

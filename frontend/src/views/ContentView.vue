@@ -25,7 +25,7 @@ const currentId = ref<number | null>(null)
 
 const { items, total, params, pages, load, handleSort } = useDataTable(
   (p) => ApiService.getContent(p), 
-  { sort: 'content_id', order: 'desc' }
+  { sort: 'content_id', order: 'desc', limit: 10 }
 )
 
 const contentForm = reactive<IContentCreate>({
@@ -131,6 +131,8 @@ onMounted(async () => {
           :columns="columns" 
           :items="items" 
           :has-actions="true"
+          :current-page="params.page"
+          :page-size="params.limit"
           :sort-config="{ key: params.sort, order: params.order }"
           @sort="handleSort"
           @edit="openModal"
@@ -154,7 +156,9 @@ onMounted(async () => {
           </template>
         </DataTable>
       </div>
-      <Pagination :current-page="params.page" :pages="pages" :total="total" @update:page="(p) => { params.page = p; load(); }" />
+      <div class="card-footer bg-white border-top-0">
+        <Pagination :current-page="params.page" :pages="pages" :total="total" @update:page="(p) => { params.page = p; load(); }" />
+      </div>
     </div>
 
     <Modal :show="showModal" :title="isEditing ? 'Редактировать контент' : 'Новый контент'" @close="closeModal">

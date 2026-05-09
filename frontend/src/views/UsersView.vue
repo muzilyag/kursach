@@ -9,7 +9,6 @@ import Pagination from '../components/Pagination.vue'
 import Modal from '../components/Modal.vue'
 
 const columns = [
-  { key: 'user_id', label: 'ID', sortable: true },
   { key: 'user_name', label: 'ФИО', sortable: true },
   { key: 'user_email', label: 'Email', sortable: true },
   { key: 'user_role', label: 'Роль', sortable: true },
@@ -22,7 +21,8 @@ const { items, total, params, pages, load, handleSort } = useDataTable(
   { 
     sort: 'user_id', 
     order: 'asc', 
-    roles: ['user'] // По умолчанию только обычные юзеры
+    roles: ['user'],
+    limit: 10
   }
 )
 
@@ -91,7 +91,6 @@ const deleteUser = async (user: IUser) => {
   }
 }
 
-// Следим за изменением чекбоксов
 watch(() => params.roles, () => {
   params.page = 1
   load()
@@ -144,6 +143,8 @@ onMounted(load)
           :columns="columns" 
           :items="items" 
           :has-actions="true"
+          :current-page="params.page"
+          :page-size="params.limit"
           :sort-config="{ key: params.sort, order: params.order }"
           @sort="handleSort"
           @edit="(u) => openModal(u)"

@@ -3,6 +3,7 @@
     <table class="table table-hover mb-0">
       <thead class="table-light">
         <tr>
+          <th style="width: 50px">#</th>
           <th v-for="col in columns" :key="col.key" 
               :class="{ 'sortable': col.sortable }"
               @click="col.sortable && $emit('sort', col.key)">
@@ -14,6 +15,9 @@
       </thead>
       <tbody>
         <tr v-for="(item, index) in items" :key="item.id || index">
+          <td class="text-muted small">
+            {{ (currentPage - 1) * pageSize + index + 1 }}
+          </td>
           <td v-for="col in columns" :key="col.key">
             <slot :name="'cell-' + col.key" :item="item">
               {{ item[col.key] }}
@@ -31,7 +35,7 @@
           </td>
         </tr>
         <tr v-if="items.length === 0">
-          <td :colspan="columns.length + (hasActions ? 1 : 0)" class="text-center py-4 text-muted">
+          <td :colspan="columns.length + (hasActions ? 2 : 1)" class="text-center py-4 text-muted">
             Данных не найдено
           </td>
         </tr>
@@ -43,12 +47,18 @@
 <script setup lang="ts">
 export type SortOrder = 'asc' | 'desc';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   columns: Array<{ key: string, label: string, sortable?: boolean }>,
   items: any[],
   sortConfig?: { key: string, order: SortOrder },
-  hasActions?: boolean
-}>()
+  hasActions?: boolean,
+  currentPage?: number,
+  pageSize?: number
+}>(), {
+  currentPage: 1,
+  pageSize: 10,
+  hasActions: false
+})
 
 defineEmits(['sort', 'edit', 'delete'])
 
