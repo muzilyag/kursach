@@ -102,21 +102,19 @@ export interface IDashboardStats {
 }
 
 export interface ISeasonalityReport {
-    month: string;
-    genre_name: string;
-    total_views: number;
+    [key: string]: string | number;
 }
 
 export interface IActivityReport {
-    user_name: string;
-    total_views: number;
-    has_active_subscription: boolean;
+    Subscription: string;
+    'Avg Time (min)': number;
+    'Unique Content': number;
 }
 
 export interface IRevenueReport {
-    subscribe_type_name: string;
-    subscriptions_count: number;
-    total_revenue: number;
+    Subscription: string;
+    'Active Subs': number;
+    'Revenue (RUB)': number;
 }
 
 export const ApiService = {
@@ -174,6 +172,29 @@ export const ApiService = {
         }
         
         return response.json();
+    },
+
+    async requestBlob(url: string, options: RequestInit = {}): Promise<Blob> {
+        const token = localStorage.getItem('token');
+        const headers: Record<string, string> = {
+            ...(options.headers as Record<string, string>)
+        };
+
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(url, { ...options, headers });
+        
+        if (response.status === 401) {
+            localStorage.removeItem('token');
+        }
+
+        if (!response.ok) {
+            throw new Error(`Ошибка при скачивании файла: ${response.status}`);
+        }
+        
+        return response.blob();
     },
 
     async register(user: IUserCreate): Promise<IUser> {
@@ -330,11 +351,23 @@ export const ApiService = {
         return this.request(`${Config.api.reports}/seasonality?year=${year}`);
     },
 
+    async exportSeasonalityReport(year: number, format: 'csv' | 'pdf'): Promise<Blob> {
+        return this.requestBlob(`${Config.api.reports}/seasonality?year=${year}&export=true&format=${format}`);
+    },
+
     async getActivityReport(): Promise<IActivityReport[]> {
         return this.request(`${Config.api.reports}/activity`);
     },
 
-    async getRevenueReport(date: string): Promise<IRevenueReport[]> {
-        return this.request(`${Config.api.reports}/revenue?target_date=${date}`);
+    async exportActivityReport(format: 'csv' | 'pdf'): Promise<Blob> {
+        return this.requestBlob(`${Config.api.reports}/activity?export=true&format=${format}`);
+    },
+
+    async getRevenueReport(startDate: string, endDate: string): Promise<IRevenueReport[]> {
+        return this.request(`${Config.api.reports}/revenue?start_date=${startDate}&end_date=${endDate}`);
+    },
+
+    async exportRevenueReport(startDate: string, endDate: string, format: 'csv' | 'pdf'): Promise<Blob> {
+        return this.requestBlob(`${Config.api.reports}/revenue?start_date=${startDate}&end_date=${endDate}&export=true&format=${format}`);
     }
 };

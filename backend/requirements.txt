@@ -10,3 +10,4 @@ email-validator
 flake8
 bcrypt
 PyJWT
+reportlab
