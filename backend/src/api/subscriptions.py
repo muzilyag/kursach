@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from typing import Optional
 from src.core.database import get_db
 from src.models.subscription import Subscribe, SubscribeType
+from src.models.payment import Payment
 from src.models.user import User
 from src.schemas.subscription import SubscriptionUpdate, SubscriptionChange, SubscriptionCreate
 
@@ -145,13 +146,42 @@ async def create_subscription(data: SubscriptionCreate, db: AsyncSession = Depen
     if active_sub_check.scalar():
         raise HTTPException(status_code=400, detail="У пользователя уже есть активная подписка")
 
+    type_result = await db.execute(
+        select(SubscribeType).where(SubscribeType.subscribe_type_id == data.subscribe_type_id)
+    )
+    sub_type = type_result.scalar_one_or_none()
+    if not sub_type:
+        raise HTTPException(status_code=404, detail="Тип подписки не найден")
+
+    start_date = data.user_registration_date if hasattr(data, 'user_registration_date') else date.today()
+
     sub = Subscribe(
         user_id=data.user_id,
         subscribe_type_id=data.subscribe_type_id,
-        subscribe_start=data.user_registration_date if hasattr(data, 'user_registration_date') else date.today(),
+        subscribe_start=start_date,
         subscribe_finish=data.subscribe_finish
     )
+
     db.add(sub)
+    await db.flush()
+
+    max_pn_result = await db.execute(
+        select(func.max(Payment.payment_number)).where(Payment.user_id == data.user_id)
+    )
+    max_pn = max_pn_result.scalar() or 0
+
+    payment = Payment(
+        user_id=data.user_id,
+        payment_number=max_pn + 1,
+        subscribe_type_id=data.subscribe_type_id,
+        subscribe_start=start_date,
+        payment_date=date.today(),
+        payment_sum=sub_type.subscribe_type_cost,
+        payment_method="карта"
+    )
+
+    db.add(payment)
+    
     try:
         await db.commit()
         return {"success": True}

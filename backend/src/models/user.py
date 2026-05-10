@@ -15,6 +15,7 @@ class User(Base):
     user_role = Column(String(20), nullable=False, default='user')
 
     subscriptions = relationship("Subscribe", back_populates="user")
+    payments = relationship("Payment", back_populates="user")
 
     def __repr__(self):
         return f"<User(id={self.user_id}, name='{self.user_name}', role='{self.user_role}')>"
