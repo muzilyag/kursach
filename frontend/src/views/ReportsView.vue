@@ -42,7 +42,7 @@ const columns = computed(() => {
   
   if (selectedReport.value === 'activity') {
     return [
-      { key: 'Тариф', label: 'Тариф' },
+      { key: 'Подписка', label: 'Тариф' },
       { key: 'Среднее время (мин)', label: 'Ср. время (мин)' },
       { key: 'Уникальный контент', label: 'Контент (ед.)' }
     ]
@@ -50,7 +50,7 @@ const columns = computed(() => {
   
   if (selectedReport.value === 'revenue') {
     return [
-      { key: 'Тариф', label: 'Тариф' },
+      { key: 'Подписка', label: 'Тариф' },
       { key: 'Активные подписки', label: 'Активные подписки' },
       { key: 'Выручка (руб.)', label: 'Выручка (₽)' }
     ]
@@ -104,7 +104,7 @@ const updateChart = () => {
 
   if (selectedReport.value === 'seasonality') {
     const months = reportData.value.map(d => d['Месяц'])
-    const genres = Object.keys(reportData.value[0]).filter(k => k !== 'Месяц')
+    const genres = Object.keys(reportData.value[0]).filter(k => k !== 'Месяц' && k !== 'Год')
     data.labels = months
     data.datasets = genres.map((genre, i) => ({
       label: genre,
@@ -116,14 +116,14 @@ const updateChart = () => {
       fill: false
     }))
   } else if (selectedReport.value === 'activity') {
-    data.labels = reportData.value.map(d => d['Тариф'])
+    data.labels = reportData.value.map(d => d['Подписка'])
     data.datasets = [{
       label: 'Среднее время (мин)',
       data: reportData.value.map(d => d['Среднее время (мин)']),
       backgroundColor: '#3b82f6'
     }]
   } else if (selectedReport.value === 'revenue') {
-    data.labels = reportData.value.map(d => d['Тариф'])
+    data.labels = reportData.value.map(d => d['Подписка'])
     data.datasets = [{
       data: reportData.value.map(d => d['Выручка (руб.)']),
       backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6']
