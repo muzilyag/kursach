@@ -106,15 +106,15 @@ export interface ISeasonalityReport {
 }
 
 export interface IActivityReport {
-    Subscription: string;
-    'Avg Time (min)': number;
-    'Unique Content': number;
+    'Тариф': string;
+    'Среднее время (мин)': number;
+    'Уникальный контент': number;
 }
 
 export interface IRevenueReport {
-    Subscription: string;
-    'Active Subs': number;
-    'Revenue (RUB)': number;
+    'Тариф': string;
+    'Активные подписки': number;
+    'Выручка (руб.)': number;
 }
 
 export const ApiService = {

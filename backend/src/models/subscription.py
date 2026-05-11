@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Text, Float, SmallInteger
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Text, Numeric, SmallInteger
 from src.core.database import Base
 from sqlalchemy.orm import relationship
 
@@ -9,7 +9,7 @@ class SubscribeType(Base):
     subscribe_type_discription = Column(Text, nullable=True)
     subscribe_type_name = Column(String(50), nullable=False)
     subscribe_type_max_type_quality = Column(SmallInteger, nullable=False)
-    subscribe_type_cost = Column(Float, nullable=False)
+    subscribe_type_cost = Column(Numeric(precision=10, scale=2), nullable=False)
     subscribe_type_duration = Column(Integer, nullable=False)
 
     subscriptions = relationship("Subscribe", back_populates="subscribe_type")
