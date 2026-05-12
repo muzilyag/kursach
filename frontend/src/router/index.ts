@@ -66,6 +66,18 @@ const router = createRouter({
       meta: { allowedRoles: ['admin', 'content_manager'] }
     },
     {
+      path: '/tags',
+      name: 'tags',
+      component: () => import('../views/TagsView.vue'),
+      meta: { allowedRoles: ['admin', 'content_manager'] }
+    },
+    {
+      path: '/copyright-holders',
+      name: 'copyright-holders',
+      component: () => import('../views/CopyrightHoldersView.vue'),
+      meta: { allowedRoles: ['admin', 'content_manager'] }
+    },
+    {
       path: '/subscriptions',
       name: 'subscriptions',
       component: () => import('../views/SubscriptionsView.vue'),

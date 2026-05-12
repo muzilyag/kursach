@@ -22,13 +22,19 @@ export const Utils = {
         return age;
     },
     
-    formatDuration(duration: string | null): string {
-        if (!duration) return '00:00';
-        const time = duration.split(':');
-        if (time.length >= 2) {
-            return `${time[0]}:${time[1]}`;
-        }
-        return '00:00';
+    formatDuration(duration: string): string {
+        if (!duration) return '---';
+        const parts = duration.split(':');
+        const h = parseInt(parts[0] ?? '', 10) || 0;
+        const m = parseInt(parts[1] ?? '', 10) || 0;
+        const s = parseInt(parts[2] ?? '', 10) || 0;
+        
+        const result = [];
+        if (h > 0) result.push(`${h}ч`);
+        if (m > 0) result.push(`${m}мин`);
+        if (s > 0 || (h === 0 && m === 0)) result.push(`${s}сек`);
+        
+        return result.join(' ');
     },
     
     getDateDaysAgo(days: number): string {
@@ -50,5 +56,13 @@ export const Utils = {
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
+    },
+
+    formatCurrency(value: number): string {
+        return new Intl.NumberFormat('ru-RU', { 
+            style: 'currency', 
+            currency: 'RUB',
+            maximumFractionDigits: 0 
+        }).format(value);
     }
 };

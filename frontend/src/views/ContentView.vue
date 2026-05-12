@@ -10,8 +10,10 @@ import Modal from '../components/Modal.vue'
 
 const columns = [
   { key: 'content_name', label: 'Название', sortable: true },
+  { key: 'content_type', label: 'Тип', sortable: true },
   { key: 'genres', label: 'Жанры' },
   { key: 'tags', label: 'Теги' },
+  { key: 'copyright_holders', label: 'Правообладатели' },
   { key: 'content_duration', label: 'Длительность', sortable: true },
   { key: 'content_publish_date', label: 'Выпуск', sortable: true }
 ]
@@ -23,47 +25,87 @@ const showModal = ref(false)
 const isEditing = ref(false)
 const currentId = ref<number | null>(null)
 
+const durationInput = reactive({
+  h: 0,
+  m: 0,
+  s: 0
+})
+
+const validateTime = (field: 'h' | 'm' | 's') => {
+  if (field === 'h') {
+    durationInput.h = Math.max(0, durationInput.h)
+  } else {
+    if (durationInput[field] > 59) durationInput[field] = 59
+    if (durationInput[field] < 0) durationInput[field] = 0
+  }
+}
+
 const { items, total, params, pages, load, handleSort } = useDataTable(
   (p) => ApiService.getContent(p), 
   { sort: 'content_id', order: 'desc', limit: 10 }
 )
 
-const contentForm = reactive<IContentCreate>({
+const contentForm = reactive({
   content_name: '',
   content_type: 'Фильм',
-  content_duration: '01:30:00',
-  content_publish_date: new Date().toISOString().split('T')[0] ?? '',
+  content_publish_date: new Date().toISOString().split('T')[0],
   content_discription: '',
-  genre_id: undefined,
-  tag_id: undefined,
-  copyright_holder_id: undefined
+  genre_ids: [] as number[],
+  tag_ids: [] as number[],
+  copyright_holder_ids: [] as number[]
 })
+
+const genreColorMap: Record<string, string> = {
+  'Драма': 'var(--genre-drama)',
+  'Комедия': 'var(--genre-comedy)',
+  'Боевик': 'var(--genre-action)',
+  'Триллер': 'var(--genre-thriller)',
+  'Ужасы': 'var(--genre-horror)',
+  'Мелодрама': 'var(--genre-romance)',
+  'Фэнтези': 'var(--genre-fantasy)',
+  'Фантастика': 'var(--genre-sci-fi)',
+  'Документальный': 'var(--genre-documentary)',
+  'Мультфильм': 'var(--genre-animation)',
+  'Приключения': 'var(--genre-adventure)',
+  'Детектив': 'var(--genre-mystery)'
+}
+
+const getGenreStyle = (name: string) => {
+  const color = genreColorMap[name] || '#f8f9fa'
+  return { backgroundColor: color, border: 'none', color: '#333' }
+}
 
 const openModal = (item: IContent | null = null) => {
   isEditing.value = !!item
   if (item) {
     currentId.value = item.content_id
+    const [h, m, s] = (item.content_duration || '00:00:00').split(':').map(Number)
+    durationInput.h = h ?? 0
+    durationInput.m = m ?? 0
+    durationInput.s = s ?? 0
+    
     Object.assign(contentForm, {
       content_name: item.content_name,
       content_type: item.content_type,
-      content_duration: item.content_duration,
-      content_publish_date: item.content_publish_date,
+      content_publish_date: item.content_publish_date ? item.content_publish_date.split('T')[0] : '',
       content_discription: item.content_discription || '',
-      genre_id: item.genres?.[0]?.genre_id,
-      tag_id: item.tags?.[0]?.tag_id,
-      copyright_holder_id: item.copyright_holders?.[0]?.copyright_holder_id
+      genre_ids: item.genres?.map(g => g.genre_id) || [],
+      tag_ids: item.tags?.map(t => t.tag_id) || [],
+      copyright_holder_ids: item.copyright_holders?.map(h => h.copyright_holder_id) || []
     })
   } else {
     currentId.value = null
+    durationInput.h = 1
+    durationInput.m = 30
+    durationInput.s = 0
     Object.assign(contentForm, {
       content_name: '',
       content_type: 'Фильм',
-      content_duration: '01:30:00',
       content_publish_date: new Date().toISOString().split('T')[0],
       content_discription: '',
-      genre_id: undefined,
-      tag_id: undefined,
-      copyright_holder_id: undefined
+      genre_ids: [],
+      tag_ids: [],
+      copyright_holder_ids: []
     })
   }
   showModal.value = true
@@ -75,10 +117,24 @@ const closeModal = () => {
 
 const saveContent = async () => {
   try {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const durationString = `${pad(durationInput.h)}:${pad(durationInput.m)}:${pad(durationInput.s)}`
+
+    const payload: IContentCreate = {
+      content_name: contentForm.content_name,
+      content_type: contentForm.content_type,
+      content_duration: durationString,
+      content_publish_date: contentForm.content_publish_date ?? '',
+      content_discription: contentForm.content_discription,
+      tag_ids: contentForm.tag_ids,
+      genre_ids: contentForm.genre_ids,
+      copyright_holder_ids: contentForm.copyright_holder_ids
+    }
+
     if (isEditing.value && currentId.value) {
-      await ApiService.updateContent(currentId.value, contentForm as any)
+      await ApiService.updateContent(currentId.value, payload as any)
     } else {
-      await ApiService.createContent(contentForm)
+      await ApiService.createContent(payload)
     }
     closeModal()
     load()
@@ -138,16 +194,73 @@ onMounted(async () => {
           @edit="openModal"
           @delete="deleteItem"
         >
+          <template #cell-content_name="{ item }">
+            <div class="text-truncate cursor-help" style="max-width: 180px;" :title="item.content_name">
+              {{ item.content_name }}
+            </div>
+          </template>
+
+          <template #cell-content_type="{ item }">
+            <span class="badge rounded-pill bg-secondary text-white opacity-75 small">{{ item.content_type }}</span>
+          </template>
+
           <template #cell-genres="{ item }">
-            <span v-for="g in item.genres" :key="g.genre_id" class="badge bg-light text-dark border me-1">
-              {{ g.genre_name }}
-            </span>
+            <div class="d-flex align-items-center" v-if="item.genres?.length">
+              <span class="badge" :style="getGenreStyle(item.genres[0].genre_name)">
+                {{ item.genres[0].genre_name }}
+              </span>
+              <div v-if="item.genres.length > 1" class="dropdown d-inline ms-1">
+                <button class="btn btn-link btn-sm p-0 text-decoration-none small fw-bold text-dark" type="button" data-bs-toggle="dropdown">
+                  +{{ item.genres.length - 1 }}
+                </button>
+                <ul class="dropdown-menu shadow-sm border-0 p-2">
+                  <li v-for="g in item.genres.slice(1)" :key="g.genre_id" class="py-1">
+                    <span class="badge w-100" :style="getGenreStyle(g.genre_name)">{{ g.genre_name }}</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <span v-else class="text-muted small">---</span>
           </template>
+          
           <template #cell-tags="{ item }">
-            <span v-for="t in item.tags" :key="t.tag_id" class="text-muted small me-1">
-              #{{ t.tag_name }}
-            </span>
+            <div class="d-flex align-items-center" v-if="item.tags?.length">
+              <span class="text-muted small me-1">#{{ item.tags[0].tag_name }}</span>
+              <div v-if="item.tags.length > 1" class="dropdown d-inline">
+                <button class="btn btn-link btn-sm p-0 text-decoration-none small fw-bold text-dark" type="button" data-bs-toggle="dropdown">
+                  +{{ item.tags.length - 1 }}
+                </button>
+                <ul class="dropdown-menu shadow-sm border-0 p-2">
+                  <li v-for="t in item.tags.slice(1)" :key="t.tag_id" class="small text-muted py-1 px-2">
+                    #{{ t.tag_name }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <span v-else class="text-muted small">---</span>
           </template>
+
+          <template #cell-copyright_holders="{ item }">
+            <div class="d-flex align-items-center" v-if="item.copyright_holders?.length">
+              <span class="small text-truncate cursor-help" 
+                    style="max-width: 130px;" 
+                    :title="item.copyright_holders.map((h: ICopyrightHolder) => h.copyright_holder_name).join(', ')">
+                {{ item.copyright_holders[0].copyright_holder_name }}
+              </span>
+              <div v-if="item.copyright_holders.length > 1" class="dropdown d-inline ms-1">
+                <button class="btn btn-link btn-sm p-0 text-decoration-none small fw-bold text-dark" type="button" data-bs-toggle="dropdown">
+                  +{{ item.copyright_holders.length - 1 }}
+                </button>
+                <ul class="dropdown-menu shadow-sm border-0 p-2" style="min-width: 200px;">
+                  <li v-for="h in item.copyright_holders.slice(1)" :key="h.copyright_holder_id" class="small py-1 px-2 border-bottom last-child-0">
+                    {{ h.copyright_holder_name }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <span v-else class="text-muted small">---</span>
+          </template>
+
           <template #cell-content_duration="{ item }">
             {{ Utils.formatDuration(item.content_duration) }}
           </template>
@@ -177,9 +290,8 @@ onMounted(async () => {
           </select>
         </div>
         <div class="col-md-6">
-          <label class="form-label small fw-bold">Жанр</label>
-          <select v-model="contentForm.genre_id" class="form-select">
-            <option :value="undefined">Не выбран</option>
+          <label class="form-label small fw-bold">Жанры</label>
+          <select v-model="contentForm.genre_ids" class="form-select" multiple size="3">
             <option v-for="g in genresList" :key="g.genre_id" :value="g.genre_id">{{ g.genre_name }}</option>
           </select>
         </div>
@@ -189,19 +301,30 @@ onMounted(async () => {
         </div>
         <div class="col-md-6">
           <label class="form-label small fw-bold">Длительность</label>
-          <input v-model="contentForm.content_duration" class="form-control" placeholder="00:00:00">
+          <div class="d-flex align-items-center gap-2">
+            <div class="flex-grow-1">
+              <input type="number" v-model.number="durationInput.h" @change="validateTime('h')" class="form-control form-control-sm text-center" placeholder="Ч">
+              <div class="text-center x-small text-muted">час</div>
+            </div>
+            <div class="flex-grow-1">
+              <input type="number" v-model.number="durationInput.m" @change="validateTime('m')" class="form-control form-control-sm text-center" placeholder="М">
+              <div class="text-center x-small text-muted">мин</div>
+            </div>
+            <div class="flex-grow-1">
+              <input type="number" v-model.number="durationInput.s" @change="validateTime('s')" class="form-control form-control-sm text-center" placeholder="С">
+              <div class="text-center x-small text-muted">сек</div>
+            </div>
+          </div>
         </div>
         <div class="col-md-6">
-          <label class="form-label small fw-bold">Тег</label>
-          <select v-model="contentForm.tag_id" class="form-select">
-            <option :value="undefined">Не выбран</option>
+          <label class="form-label small fw-bold">Теги</label>
+          <select v-model="contentForm.tag_ids" class="form-select" multiple size="3">
             <option v-for="t in tagsList" :key="t.tag_id" :value="t.tag_id">{{ t.tag_name }}</option>
           </select>
         </div>
         <div class="col-md-6">
-          <label class="form-label small fw-bold">Правообладатель</label>
-          <select v-model="contentForm.copyright_holder_id" class="form-select">
-            <option :value="undefined">Не выбран</option>
+          <label class="form-label small fw-bold">Правообладатели</label>
+          <select v-model="contentForm.copyright_holder_ids" class="form-select" multiple size="3">
             <option v-for="h in holdersList" :key="h.copyright_holder_id" :value="h.copyright_holder_id">{{ h.copyright_holder_name }}</option>
           </select>
         </div>
@@ -217,3 +340,23 @@ onMounted(async () => {
     </Modal>
   </div>
 </template>
+
+<style scoped>
+.last-child-0:last-child {
+  border-bottom: 0 !important;
+}
+.badge {
+  font-weight: 500;
+}
+.x-small {
+  font-size: 0.7rem;
+}
+.cursor-help {
+  cursor: help;
+}
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+</style>

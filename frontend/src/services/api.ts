@@ -67,6 +67,8 @@ export interface ITag {
 export interface ICopyrightHolder {
     copyright_holder_id: number;
     copyright_holder_name: string;
+    copyright_holder_phone?: string;
+    copyright_holder_email?: string;
 }
 
 export interface IContent {
@@ -87,9 +89,9 @@ export interface IContentCreate {
     content_duration: string;
     content_publish_date: string;
     content_discription?: string;
-    genre_id?: number;
-    tag_id?: number;
-    copyright_holder_id?: number;
+    genre_ids: number[];
+    tag_ids: number[];
+    copyright_holder_ids: number[];
 }
 
 export interface IDashboardStats {
@@ -307,8 +309,51 @@ export const ApiService = {
         return this.request(Config.api.tags);
     },
 
+    async getTagsDirect(params: any = {}): Promise<ITag[]> {
+        const query = this.buildQuery(params);
+        return this.request(`${Config.api.tagsDirect}?${query}`);
+    },
+
+    async createTag(tag: { tag_name: string }): Promise<ITag> {
+        return this.request(Config.api.tagsDirect, {
+            method: 'POST',
+            body: JSON.stringify(tag)
+        });
+    },
+
+    async deleteTag(id: number): Promise<any> {
+        return this.request(`${Config.api.tagsDirect}/${id}`, {
+            method: 'DELETE'
+        });
+    },
+
     async getCopyrightHolders(): Promise<ICopyrightHolder[]> {
         return this.request(Config.api.copyrightHolders);
+    },
+
+    async getCopyrightHoldersDirect(params: any = {}): Promise<ICopyrightHolder[]> {
+        const query = this.buildQuery(params);
+        return this.request(`${Config.api.copyrightHoldersDirect}?${query}`);
+    },
+
+    async createCopyrightHolder(holder: Omit<ICopyrightHolder, 'copyright_holder_id'>): Promise<ICopyrightHolder> {
+        return this.request(Config.api.copyrightHoldersDirect, {
+            method: 'POST',
+            body: JSON.stringify(holder)
+        });
+    },
+
+    async updateCopyrightHolder(id: number, holder: Partial<ICopyrightHolder>): Promise<ICopyrightHolder> {
+        return this.request(`${Config.api.copyrightHoldersDirect}/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(holder)
+        });
+    },
+
+    async deleteCopyrightHolder(id: number): Promise<any> {
+        return this.request(`${Config.api.copyrightHoldersDirect}/${id}`, {
+            method: 'DELETE'
+        });
     },
 
     async getSubscriptions(params: any): Promise<{ subscriptions: ISubscription[], total: number }> {

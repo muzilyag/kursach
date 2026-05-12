@@ -99,6 +99,18 @@ const handleLogout = () => {
             Контент
           </RouterLink>
         </li>
+        <li v-if="isStaff">
+          <RouterLink to="/tags" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
+            <i class="bi bi-tags me-2"></i>
+            Теги
+          </RouterLink>
+        </li>
+        <li v-if="isStaff">
+          <RouterLink to="/copyright-holders" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
+            <i class="bi bi-shield-check me-2"></i>
+            Правообладатели
+          </RouterLink>
+        </li>
         <li v-if="userRole === 'admin'">
           <RouterLink to="/subscriptions" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
             <i class="bi bi-card-checklist me-2"></i>

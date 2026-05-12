@@ -30,6 +30,8 @@ export const Config = {
         content: `${API_BASE}/content`,
         tags: `${API_BASE}/content/tags`,
         copyrightHolders: `${API_BASE}/content/copyright-holders`,
+        tagsDirect: `${API_BASE}/tags`,
+        copyrightHoldersDirect: `${API_BASE}/copyright-holders`,
         subscriptions: `${API_BASE}/subscriptions`,
         subscriptionTypes: `${API_BASE}/subscriptions/types`,
         reports: `${API_BASE}/reports`,

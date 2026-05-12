@@ -32,6 +32,8 @@ class CopyrightHolder(Base):
     __tablename__ = "copyright_holder"
     copyright_holder_id = Column(Integer, primary_key=True, index=True)
     copyright_holder_name = Column(String(100), nullable=False)
+    copyright_holder_phone = Column(String(15), nullable=False)
+    copyright_holder_email = Column(String(100), nullable=False)
 
 class Tag(Base):
     __tablename__ = "tag"
@@ -44,7 +46,7 @@ class Content(Base):
     content_name = Column(String(100), nullable=False)
     content_duration = Column(Time, nullable=False)
     content_publish_date = Column(Date, nullable=False)
-    content_discription = Column(String(500))
+    content_description = Column("content_discription", String(500))
     content_type = Column(String(50))
 
     genres = relationship("Genre", secondary=content_genre_association, lazy="selectin")
