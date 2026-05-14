@@ -47,7 +47,7 @@ const { items, total, params, pages, load, handleSort } = useDataTable(
 
 const contentForm = reactive({
   content_name: '',
-  content_type: 'Фильм',
+  content_type: 'фильм',
   content_publish_date: new Date().toISOString().split('T')[0],
   content_discription: '',
   genre_ids: [] as number[],
@@ -100,7 +100,7 @@ const openModal = (item: IContent | null = null) => {
     durationInput.s = 0
     Object.assign(contentForm, {
       content_name: '',
-      content_type: 'Фильм',
+      content_type: 'фильм',
       content_publish_date: new Date().toISOString().split('T')[0],
       content_discription: '',
       genre_ids: [],
@@ -283,10 +283,10 @@ onMounted(async () => {
         <div class="col-md-6">
           <label class="form-label small fw-bold">Тип</label>
           <select v-model="contentForm.content_type" class="form-select">
-            <option value="Фильм">Фильм</option>
-            <option value="Сериал">Сериал</option>
-            <option value="Шоу">Шоу</option>
-            <option value="Мультфильм">Мультфильм</option>
+            <option value="фильм">фильм</option>
+            <option value="сериал">сериал</option>
+            <option value="шоу">шоу</option>
+            <option value="мультфильм">мультфильм</option>
           </select>
         </div>
         <div class="col-md-6">

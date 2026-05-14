@@ -30,7 +30,7 @@ async def get_content(
         query = query.where(
             or_(
                 Content.content_name.ilike(f"%{search}%"),
-                Content.content_description.ilike(f"%{search}%")
+                Content.content_discription.ilike(f"%{search}%")
             )
         )
 
@@ -45,7 +45,7 @@ async def get_content(
         count_query = count_query.where(
             or_(
                 Content.content_name.ilike(f"%{search}%"),
-                Content.content_description.ilike(f"%{search}%")
+                Content.content_discription.ilike(f"%{search}%")
             )
         )
     total_result = await db.execute(count_query)
@@ -59,21 +59,14 @@ async def get_content(
             "content_type": c.content_type,
             "content_duration": str(c.content_duration),
             "content_publish_date": str(c.content_publish_date) if c.content_publish_date else None,
-            "content_description": c.content_description,
-            "genres": [
-                {"genre_id": g.genre_id, "genre_name": g.genre_name} 
-                for g in c.genres
-            ],
-            "tags": [
-                {"tag_id": t.tag_id, "tag_name": t.tag_name} 
-                for t in c.tags
-            ],
+            "content_discription": c.content_discription,
+            "genres": [{"genre_id": g.genre_id, "genre_name": g.genre_name} for g in c.genres],
+            "tags": [{"tag_id": t.tag_id, "tag_name": t.tag_name} for t in c.tags],
             "copyright_holders": [
                 {
                     "copyright_holder_id": h.copyright_holder_id, 
                     "copyright_holder_name": h.copyright_holder_name
-                } 
-                for h in c.copyright_holders
+                } for h in c.copyright_holders
             ]
         })
         
@@ -91,20 +84,20 @@ async def create_content(data: ContentCreate, db: AsyncSession = Depends(get_db)
         content_type=data.content_type,
         content_duration=data.content_duration,
         content_publish_date=data.content_publish_date,
-        content_description=data.content_description
+        content_discription=data.content_discription
     )
     
     if data.genre_ids:
-        genres_result = await db.execute(select(Genre).where(Genre.genre_id.in_(data.genre_ids)))
-        new_content.genres = list(genres_result.scalars().all())
+        res = await db.execute(select(Genre).where(Genre.genre_id.in_(data.genre_ids)))
+        new_content.genres = list(res.scalars().all())
         
     if data.copyright_holder_ids:
-        holders_result = await db.execute(select(CopyrightHolder).where(CopyrightHolder.copyright_holder_id.in_(data.copyright_holder_ids)))
-        new_content.copyright_holders = list(holders_result.scalars().all())
+        res = await db.execute(select(CopyrightHolder).where(CopyrightHolder.copyright_holder_id.in_(data.copyright_holder_ids)))
+        new_content.copyright_holders = list(res.scalars().all())
         
     if data.tag_ids:
-        tags_result = await db.execute(select(Tag).where(Tag.tag_id.in_(data.tag_ids)))
-        new_content.tags = list(tags_result.scalars().all())
+        res = await db.execute(select(Tag).where(Tag.tag_id.in_(data.tag_ids)))
+        new_content.tags = list(res.scalars().all())
         
     db.add(new_content)
     await db.commit()
@@ -126,24 +119,24 @@ async def update_content(content_id: int, data: ContentCreate, db: AsyncSession 
     content.content_type = data.content_type
     content.content_duration = data.content_duration
     content.content_publish_date = data.content_publish_date
-    content.content_description = data.content_description
+    content.content_discription = data.content_discription
     
     if data.genre_ids:
-        genres_result = await db.execute(select(Genre).where(Genre.genre_id.in_(data.genre_ids)))
-        content.genres = list(genres_result.scalars().all())
-    else: 
+        res = await db.execute(select(Genre).where(Genre.genre_id.in_(data.genre_ids)))
+        content.genres = list(res.scalars().all())
+    else:
         content.genres = []
         
     if data.copyright_holder_ids:
-        holders_result = await db.execute(select(CopyrightHolder).where(CopyrightHolder.copyright_holder_id.in_(data.copyright_holder_ids)))
-        content.copyright_holders = list(holders_result.scalars().all())
-    else: 
+        res = await db.execute(select(CopyrightHolder).where(CopyrightHolder.copyright_holder_id.in_(data.copyright_holder_ids)))
+        content.copyright_holders = list(res.scalars().all())
+    else:
         content.copyright_holders = []
 
     if data.tag_ids:
-        tags_result = await db.execute(select(Tag).where(Tag.tag_id.in_(data.tag_ids)))
-        content.tags = list(tags_result.scalars().all())
-    else: 
+        res = await db.execute(select(Tag).where(Tag.tag_id.in_(data.tag_ids)))
+        content.tags = list(res.scalars().all())
+    else:
         content.tags = []
         
     await db.commit()

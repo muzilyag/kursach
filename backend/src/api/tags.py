@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
-from sqlalchemy import select, delete, desc, asc
+from sqlalchemy import select, delete, desc, asc, func
 from src.core.database import get_db
 from src.schemas.content import TagCreate, TagRead
 from src.models.content import Tag
 
 router = APIRouter(tags=["Tags"])
 
-@router.get("", response_model=List[TagRead])
+@router.get("")
 async def get_tags(
     search: str = Query(None),
     page: int = Query(1, ge=1),
@@ -19,9 +19,11 @@ async def get_tags(
 ):
     offset = (page - 1) * limit
     query = select(Tag)
+    count_query = select(func.count()).select_from(Tag)
     
     if search:
         query = query.where(Tag.tag_name.ilike(f"%{search}%"))
+        count_query = count_query.where(Tag.tag_name.ilike(f"%{search}%"))
     
     column = getattr(Tag, sort, Tag.tag_id)
     if order == "desc":
@@ -30,7 +32,17 @@ async def get_tags(
         query = query.order_by(asc(column))
         
     result = await db.execute(query.limit(limit).offset(offset))
-    return result.scalars().all()
+    items = result.scalars().all()
+    
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "pages": (total + limit - 1) // limit
+    }
 
 @router.post("", response_model=TagRead)
 async def create_tag(tag_data: TagCreate, db: AsyncSession = Depends(get_db)):
@@ -52,3 +64,18 @@ async def delete_tag(tag_id: int, db: AsyncSession = Depends(get_db)):
     await db.execute(delete(Tag).where(Tag.tag_id == tag_id))
     await db.commit()
     return {"status": "success"}
+
+@router.put("/{tag_id}", response_model=TagRead)
+async def update_tag(tag_id: int, data: TagCreate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Tag).where(Tag.tag_id == tag_id))
+    tag = result.scalar_one_or_none()
+    
+    if not tag:
+        raise HTTPException(status_code=404, detail="Not found")
+        
+    for key, value in data.model_dump().items():
+        setattr(tag, key, value)
+        
+    await db.commit()
+    await db.refresh(tag)
+    return tag

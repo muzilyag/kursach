@@ -41,7 +41,7 @@ class ContentRead(BaseModel):
     content_type: str
     content_duration: time
     content_publish_date: date
-    content_description: Optional[str] = None
+    content_discription: Optional[str] = None
     genres: List[GenreRead] = []
     copyright_holders: List[CopyrightHolderRead] = []
     tags: List[TagRead] = []
@@ -53,7 +53,7 @@ class ContentCreate(BaseModel):
     content_type: str
     content_duration: time
     content_publish_date: date
-    content_description: Optional[str] = None
+    content_discription: Optional[str] = None
     genre_ids: List[int] = []
     copyright_holder_ids: List[int] = []
     tag_ids: List[int] = []

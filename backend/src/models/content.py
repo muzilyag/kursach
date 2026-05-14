@@ -46,7 +46,7 @@ class Content(Base):
     content_name = Column(String(100), nullable=False)
     content_duration = Column(Time, nullable=False)
     content_publish_date = Column(Date, nullable=False)
-    content_description = Column("content_discription", String(500))
+    content_discription = Column("content_discription", String(500))
     content_type = Column(String(50))
 
     genres = relationship("Genre", secondary=content_genre_association, lazy="selectin")

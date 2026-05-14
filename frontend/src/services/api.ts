@@ -276,7 +276,7 @@ export const ApiService = {
         });
     },
 
-    async getContent(params: any): Promise<{ items: IContent[], total: number }> {
+    async getContent(params: any): Promise<{ items: IContent[], total: number, page: number, pages: number }> {
         const query = this.buildQuery(params);
         return this.request(`${Config.api.content}?${query}`);
     },
@@ -309,7 +309,7 @@ export const ApiService = {
         return this.request(Config.api.tags);
     },
 
-    async getTagsDirect(params: any = {}): Promise<ITag[]> {
+    async getTagsDirect(params: any = {}): Promise<{ items: ITag[], total: number, page: number, pages: number }> {
         const query = this.buildQuery(params);
         return this.request(`${Config.api.tagsDirect}?${query}`);
     },
@@ -331,7 +331,7 @@ export const ApiService = {
         return this.request(Config.api.copyrightHolders);
     },
 
-    async getCopyrightHoldersDirect(params: any = {}): Promise<ICopyrightHolder[]> {
+    async getCopyrightHoldersDirect(params: any = {}): Promise<{ items: ICopyrightHolder[], total: number, page: number, pages: number }> {
         const query = this.buildQuery(params);
         return this.request(`${Config.api.copyrightHoldersDirect}?${query}`);
     },

@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
-from sqlalchemy import select, delete, desc, asc
+from sqlalchemy import select, delete, desc, asc, func
 from src.core.database import get_db
 from src.schemas.content import CopyrightHolderCreate, CopyrightHolderRead
 from src.models.content import CopyrightHolder
 
 router = APIRouter(tags=["Copyright Holders"])
 
-@router.get("", response_model=List[CopyrightHolderRead])
+@router.get("")
 async def get_copyright_holders(
     search: str = Query(None),
     page: int = Query(1, ge=1),
@@ -19,9 +19,11 @@ async def get_copyright_holders(
 ):
     offset = (page - 1) * limit
     query = select(CopyrightHolder)
+    count_query = select(func.count()).select_from(CopyrightHolder)
     
     if search:
         query = query.where(CopyrightHolder.copyright_holder_name.ilike(f"%{search}%"))
+        count_query = count_query.where(CopyrightHolder.copyright_holder_name.ilike(f"%{search}%"))
     
     column = getattr(CopyrightHolder, sort, CopyrightHolder.copyright_holder_id)
     if order == "desc":
@@ -30,7 +32,17 @@ async def get_copyright_holders(
         query = query.order_by(asc(column))
 
     result = await db.execute(query.limit(limit).offset(offset))
-    return result.scalars().all()
+    items = result.scalars().all()
+    
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "pages": (total + limit - 1) // limit
+    }
 
 @router.post("", response_model=CopyrightHolderRead)
 async def create_copyright_holder(data: CopyrightHolderCreate, db: AsyncSession = Depends(get_db)):
