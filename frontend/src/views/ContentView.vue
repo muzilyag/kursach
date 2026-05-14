@@ -291,9 +291,14 @@ onMounted(async () => {
         </div>
         <div class="col-md-6">
           <label class="form-label small fw-bold">Жанры</label>
-          <select v-model="contentForm.genre_ids" class="form-select" multiple size="3">
-            <option v-for="g in genresList" :key="g.genre_id" :value="g.genre_id">{{ g.genre_name }}</option>
-          </select>
+          <div class="border rounded p-2 bg-white form-control checkbox-list-container">
+            <div class="form-check mb-1" v-for="g in genresList" :key="g.genre_id">
+              <input class="form-check-input" type="checkbox" :value="g.genre_id" :id="'genre-'+g.genre_id" v-model="contentForm.genre_ids">
+              <label class="form-check-label small" :for="'genre-'+g.genre_id">
+                {{ g.genre_name }}
+              </label>
+            </div>
+          </div>
         </div>
         <div class="col-md-6">
           <label class="form-label small fw-bold">Дата выпуска</label>
@@ -318,15 +323,25 @@ onMounted(async () => {
         </div>
         <div class="col-md-6">
           <label class="form-label small fw-bold">Теги</label>
-          <select v-model="contentForm.tag_ids" class="form-select" multiple size="3">
-            <option v-for="t in tagsList" :key="t.tag_id" :value="t.tag_id">{{ t.tag_name }}</option>
-          </select>
+          <div class="border rounded p-2 bg-white form-control checkbox-list-container">
+            <div class="form-check mb-1" v-for="t in tagsList" :key="t.tag_id">
+              <input class="form-check-input" type="checkbox" :value="t.tag_id" :id="'tag-'+t.tag_id" v-model="contentForm.tag_ids">
+              <label class="form-check-label small" :for="'tag-'+t.tag_id">
+                {{ t.tag_name }}
+              </label>
+            </div>
+          </div>
         </div>
         <div class="col-md-6">
           <label class="form-label small fw-bold">Правообладатели</label>
-          <select v-model="contentForm.copyright_holder_ids" class="form-select" multiple size="3">
-            <option v-for="h in holdersList" :key="h.copyright_holder_id" :value="h.copyright_holder_id">{{ h.copyright_holder_name }}</option>
-          </select>
+          <div class="border rounded p-2 bg-white form-control checkbox-list-container">
+            <div class="form-check mb-1" v-for="h in holdersList" :key="h.copyright_holder_id">
+              <input class="form-check-input" type="checkbox" :value="h.copyright_holder_id" :id="'holder-'+h.copyright_holder_id" v-model="contentForm.copyright_holder_ids">
+              <label class="form-check-label small" :for="'holder-'+h.copyright_holder_id">
+                {{ h.copyright_holder_name }}
+              </label>
+            </div>
+          </div>
         </div>
         <div class="col-12">
           <label class="form-label small fw-bold">Описание</label>
@@ -353,6 +368,10 @@ onMounted(async () => {
 }
 .cursor-help {
   cursor: help;
+}
+.checkbox-list-container {
+  max-height: 140px;
+  overflow-y: auto;
 }
 input[type=number]::-webkit-inner-spin-button, 
 input[type=number]::-webkit-outer-spin-button { 

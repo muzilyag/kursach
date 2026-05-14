@@ -16,13 +16,23 @@ const currentId = ref<number | null>(null)
 const holderForm = reactive({
   copyright_holder_name: '',
   copyright_holder_phone: '',
-  copyright_holder_email: ''
+  copyright_holder_email: '',
+  content_ids: [] as number[]
 })
+
+const allContent = ref<any[]>([])
 
 const { items, total, params, pages, load, handleSort } = useDataTable(
   (p) => ApiService.getCopyrightHoldersDirect(p),
   { sort: 'copyright_holder_id', order: 'desc', limit: 10 }
 )
+
+const loadContent = async () => {
+  try {
+    const data = await ApiService.getContent({ limit: 10000 })
+    allContent.value = data.items
+  } catch (e) {}
+}
 
 const setEdit = (item: ICopyrightHolder) => {
   isEditing.value = true
@@ -30,6 +40,9 @@ const setEdit = (item: ICopyrightHolder) => {
   holderForm.copyright_holder_name = item.copyright_holder_name
   holderForm.copyright_holder_phone = item.copyright_holder_phone || ''
   holderForm.copyright_holder_email = item.copyright_holder_email || ''
+  holderForm.content_ids = allContent.value
+    .filter(c => c.copyright_holders?.some((h: any) => h.copyright_holder_id === item.copyright_holder_id))
+    .map(c => c.content_id)
 }
 
 const resetForm = () => {
@@ -38,6 +51,7 @@ const resetForm = () => {
   holderForm.copyright_holder_name = ''
   holderForm.copyright_holder_phone = ''
   holderForm.copyright_holder_email = ''
+  holderForm.content_ids = []
 }
 
 const saveHolder = async () => {
@@ -65,7 +79,10 @@ const deleteItem = async (item: ICopyrightHolder) => {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  loadContent()
+})
 </script>
 
 <template>
@@ -101,6 +118,17 @@ onMounted(load)
               <div class="mb-3">
                 <label class="form-label small fw-bold">Email</label>
                 <input v-model="holderForm.copyright_holder_email" type="email" class="form-control" placeholder="example@mail.com">
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Связанный контент</label>
+                <div class="border rounded p-2 bg-white form-control checkbox-list-container">
+                  <div class="form-check mb-1" v-for="c in allContent" :key="c.content_id">
+                    <input class="form-check-input" type="checkbox" :value="c.content_id" :id="'content-'+c.content_id" v-model="holderForm.content_ids">
+                    <label class="form-check-label small" :for="'content-'+c.content_id">
+                      {{ c.content_name }}
+                    </label>
+                  </div>
+                </div>
               </div>
               <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary flex-grow-1">
@@ -164,4 +192,8 @@ onMounted(load)
 <style scoped>
 .smallest { font-size: 0.75rem; }
 .italic { font-style: italic; }
+.checkbox-list-container {
+  max-height: 200px;
+  overflow-y: auto;
+}
 </style>

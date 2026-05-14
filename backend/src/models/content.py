@@ -27,6 +27,7 @@ class Genre(Base):
     __tablename__ = "genre"
     genre_id = Column(Integer, primary_key=True, index=True)
     genre_name = Column(String(50), nullable=False)
+    contents = relationship("Content", secondary=content_genre_association, back_populates="genres")
 
 class CopyrightHolder(Base):
     __tablename__ = "copyright_holder"
@@ -34,11 +35,13 @@ class CopyrightHolder(Base):
     copyright_holder_name = Column(String(100), nullable=False)
     copyright_holder_phone = Column(String(15), nullable=False)
     copyright_holder_email = Column(String(100), nullable=False)
+    contents = relationship("Content", secondary=content_copyright_association, back_populates="copyright_holders")
 
 class Tag(Base):
     __tablename__ = "tag"
     tag_id = Column(Integer, primary_key=True, index=True)
     tag_name = Column(String(50), nullable=False)
+    contents = relationship("Content", secondary=content_tag_association, back_populates="tags")
 
 class Content(Base):
     __tablename__ = "content"
@@ -48,7 +51,6 @@ class Content(Base):
     content_publish_date = Column(Date, nullable=False)
     content_discription = Column("content_discription", String(500))
     content_type = Column(String(50))
-
-    genres = relationship("Genre", secondary=content_genre_association, lazy="selectin")
-    copyright_holders = relationship("CopyrightHolder", secondary=content_copyright_association, lazy="selectin")
-    tags = relationship("Tag", secondary=content_tag_association, lazy="selectin")
+    genres = relationship("Genre", secondary=content_genre_association, back_populates="contents", lazy="selectin")
+    copyright_holders = relationship("CopyrightHolder", secondary=content_copyright_association, back_populates="contents", lazy="selectin")
+    tags = relationship("Tag", secondary=content_tag_association, back_populates="contents", lazy="selectin")

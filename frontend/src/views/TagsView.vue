@@ -14,10 +14,14 @@ const columns = [
 
 const isEditing = ref(false)
 const currentId = ref<number | null>(null)
-const tagForm = reactive({ tag_name: '' })
+const tagForm = reactive({ 
+  tag_name: '',
+  content_ids: [] as number[]
+})
 
 const tagCounts = ref<Record<number, number>>({})
 const allTags = ref<ITag[]>([])
+const allContent = ref<any[]>([])
 
 const cloudWidth = ref(40)
 const isResizing = ref(false)
@@ -53,6 +57,7 @@ const loadStatsAndTags = async () => {
     ])
     
     allTags.value = tags
+    allContent.value = contentData.items
     
     const counts: Record<number, number> = {}
     contentData.items.forEach(c => {
@@ -86,12 +91,16 @@ const setEdit = (item: ITag) => {
   isEditing.value = true
   currentId.value = item.tag_id
   tagForm.tag_name = item.tag_name
+  tagForm.content_ids = allContent.value
+    .filter(c => c.tags?.some((t: any) => t.tag_id === item.tag_id))
+    .map(c => c.content_id)
 }
 
 const resetForm = () => {
   isEditing.value = false
   currentId.value = null
   tagForm.tag_name = ''
+  tagForm.content_ids = []
 }
 
 const saveTag = async () => {
@@ -197,16 +206,27 @@ onUnmounted(() => {
             <h5 class="card-title mb-0 fw-bold">{{ isEditing ? 'Редактировать тег' : 'Добавить тег' }}</h5>
           </div>
           <div class="card-body py-0 pb-3">
-            <form @submit.prevent="saveTag" class="row g-2 align-items-end">
-              <div class="col">
+            <form @submit.prevent="saveTag">
+              <div class="mb-3">
                 <label class="form-label small fw-bold">Название тега</label>
                 <input v-model="tagForm.tag_name" type="text" class="form-control" placeholder="Напр: боевик" required>
               </div>
-              <div class="col-auto">
-                <button type="submit" class="btn btn-primary px-4">
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Связанный контент</label>
+                <div class="border rounded p-2 bg-white form-control checkbox-list-container">
+                  <div class="form-check mb-1" v-for="c in allContent" :key="c.content_id">
+                    <input class="form-check-input" type="checkbox" :value="c.content_id" :id="'content-'+c.content_id" v-model="tagForm.content_ids">
+                    <label class="form-check-label small" :for="'content-'+c.content_id">
+                      {{ c.content_name }}
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
                   {{ isEditing ? 'Обновить' : 'Сохранить' }}
                 </button>
-                <button v-if="isEditing" type="button" class="btn btn-light ms-2" @click="resetForm">Отмена</button>
+                <button v-if="isEditing" type="button" class="btn btn-light" @click="resetForm">Отмена</button>
               </div>
             </form>
           </div>
@@ -315,5 +335,14 @@ onUnmounted(() => {
 .resizer:hover::after {
   background: #0d6efd;
   width: 5px;
+}
+
+.smallest {
+  font-size: 0.75rem;
+}
+
+.checkbox-list-container {
+  max-height: 180px;
+  overflow-y: auto;
 }
 </style>

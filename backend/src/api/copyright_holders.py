@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from typing import List
 from sqlalchemy import select, delete, desc, asc, func
 from src.core.database import get_db
 from src.schemas.content import CopyrightHolderCreate, CopyrightHolderRead
-from src.models.content import CopyrightHolder
+from src.models.content import CopyrightHolder, Content
 
 router = APIRouter(tags=["Copyright Holders"])
 
@@ -20,23 +21,18 @@ async def get_copyright_holders(
     offset = (page - 1) * limit
     query = select(CopyrightHolder)
     count_query = select(func.count()).select_from(CopyrightHolder)
-    
     if search:
         query = query.where(CopyrightHolder.copyright_holder_name.ilike(f"%{search}%"))
         count_query = count_query.where(CopyrightHolder.copyright_holder_name.ilike(f"%{search}%"))
-    
     column = getattr(CopyrightHolder, sort, CopyrightHolder.copyright_holder_id)
     if order == "desc":
         query = query.order_by(desc(column))
     else:
         query = query.order_by(asc(column))
-
     result = await db.execute(query.limit(limit).offset(offset))
     items = result.scalars().all()
-    
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
-    
     return {
         "items": items,
         "total": total,
@@ -46,7 +42,11 @@ async def get_copyright_holders(
 
 @router.post("", response_model=CopyrightHolderRead)
 async def create_copyright_holder(data: CopyrightHolderCreate, db: AsyncSession = Depends(get_db)):
-    new_holder = CopyrightHolder(**data.model_dump())
+    holder_dict = data.model_dump(exclude={'content_ids'})
+    new_holder = CopyrightHolder(**holder_dict)
+    if data.content_ids:
+        content_res = await db.execute(select(Content).where(Content.content_id.in_(data.content_ids)))
+        new_holder.contents = list(content_res.scalars().all())
     db.add(new_holder)
     await db.commit()
     await db.refresh(new_holder)
@@ -54,12 +54,18 @@ async def create_copyright_holder(data: CopyrightHolderCreate, db: AsyncSession 
 
 @router.put("/{holder_id}", response_model=CopyrightHolderRead)
 async def update_copyright_holder(holder_id: int, data: CopyrightHolderCreate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(CopyrightHolder).where(CopyrightHolder.copyright_holder_id == holder_id))
+    result = await db.execute(select(CopyrightHolder).options(selectinload(CopyrightHolder.contents)).where(CopyrightHolder.copyright_holder_id == holder_id))
     holder = result.scalar_one_or_none()
     if not holder:
         raise HTTPException(status_code=404, detail="Not found")
-    for key, value in data.model_dump().items():
+    for key, value in data.model_dump(exclude={'content_ids'}).items():
         setattr(holder, key, value)
+    if data.content_ids is not None:
+        if data.content_ids:
+            content_res = await db.execute(select(Content).where(Content.content_id.in_(data.content_ids)))
+            holder.contents = list(content_res.scalars().all())
+        else:
+            holder.contents = []
     await db.commit()
     await db.refresh(holder)
     return holder

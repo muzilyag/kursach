@@ -6,7 +6,7 @@ class TagBase(BaseModel):
     tag_name: str
 
 class TagCreate(TagBase):
-    pass
+    content_ids: List[int] = []
 
 class TagRead(TagBase):
     tag_id: int
@@ -19,7 +19,7 @@ class CopyrightHolderBase(BaseModel):
     copyright_holder_email: EmailStr
 
 class CopyrightHolderCreate(CopyrightHolderBase):
-    pass
+    content_ids: List[int] = []
 
 class CopyrightHolderRead(BaseModel):
     copyright_holder_id: int
