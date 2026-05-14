@@ -43,6 +43,8 @@ const roleLabels: Record<string, string> = {
 }
 
 const openModal = (user: IUser | null = null) => {
+  if (user && user.user_role === 'admin') return
+
   isEditing.value = !!user
   if (user) {
     Object.assign(userForm, {
@@ -81,6 +83,8 @@ const saveUser = async () => {
 }
 
 const deleteUser = async (user: IUser) => {
+  if (user.user_role === 'admin') return
+
   if (confirm('Удалить пользователя?')) {
     try {
       await ApiService.deleteUser(user.user_id)
@@ -150,6 +154,17 @@ onMounted(load)
           @edit="(u) => openModal(u)"
           @delete="deleteUser"
         >
+          <template #actions="{ item }">
+            <span v-if="item.user_role === 'admin'" class="text-muted small">Нет действий</span>
+            <div v-else class="d-flex gap-2 justify-content-end">
+              <button class="btn btn-sm btn-outline-primary" @click="openModal(item)">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" @click="deleteUser(item)">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </template>
           <template #cell-user_role="{ item }">
             <span class="badge" :class="item.user_role === 'admin' ? 'bg-danger' : (item.user_role === 'content_manager' ? 'bg-info' : 'bg-secondary')">
               {{ roleLabels[item.user_role] || item.user_role }}
