@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from datetime import date, time
 from typing import Optional, List
 
@@ -57,3 +57,7 @@ class ContentCreate(BaseModel):
     genre_ids: List[int] = []
     copyright_holder_ids: List[int] = []
     tag_ids: List[int] = []
+
+
+class ViewingUpdate(BaseModel):
+    progress: int

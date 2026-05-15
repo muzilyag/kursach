@@ -414,5 +414,16 @@ export const ApiService = {
 
     async exportRevenueReport(startDate: string, endDate: string, format: 'csv' | 'pdf'): Promise<Blob> {
         return this.requestBlob(`${Config.api.reports}/revenue?start_date=${startDate}&end_date=${endDate}&export=true&format=${format}`);
+    },
+
+    async getContentProgress(id: number): Promise<{ progress: number }> {
+        return this.request(`${Config.api.content}/${id}/progress`);
+    },
+
+    async updateContentProgress(id: number, progress: number): Promise<any> {
+        return this.request(`${Config.api.content}/${id}/progress`, {
+            method: 'PATCH',
+            body: JSON.stringify({ progress })
+        });
     }
 };
