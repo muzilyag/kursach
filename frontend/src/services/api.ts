@@ -103,12 +103,17 @@ export interface IContentCreate {
 }
 
 export interface IDashboardStats {
-    users: number;
-    content: number;
-    totalSubscriptions: number;
-    activeSubscriptions: number;
-    views: number;
-    totalRevenue: number;
+    total_users: number;
+    total_revenue: string;
+    total_content: number;
+    total_genres: number;
+    total_copyright_holders: number;
+    total_tags: number;
+    total_viewings: number;
+    breakdown: {
+        content_types: Array<{ type: string; count: number }>;
+        payment_methods: Array<{ method: string; amount: string }>;
+    };
 }
 
 export interface ISeasonalityReport {
