@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 from typing import List, Optional
+from datetime import date
 
 from src.core.database import get_db
 from src.repositories.user_repository import UserRepository
 from src.schemas.user import UserCreate, UserUpdate, UserResponse, UserPasswordUpdate
 from src.models.user import User
+from src.models.subscription import Subscribe, SubscribeType
 from src.core.security import RoleChecker, get_password_hash, get_current_user, verify_password
 
 router = APIRouter()
@@ -35,8 +39,39 @@ async def get_users(
     }
 
 @router.get("/me", response_model=UserResponse)
-async def get_me(current_user: User = Depends(get_current_user)):
-    return current_user
+async def get_me(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    stmt = (
+        select(Subscribe)
+        .options(joinedload(Subscribe.subscribe_type))
+        .where(
+            Subscribe.user_id == current_user.user_id,
+            Subscribe.subscribe_finish >= date.today()
+        )
+        .order_by(Subscribe.subscribe_finish.desc())
+        .limit(1)
+    )
+    result = await db.execute(stmt)
+    sub = result.scalar_one_or_none()
+
+    response_data = {
+        "user_id": current_user.user_id,
+        "user_name": current_user.user_name,
+        "user_email": current_user.user_email,
+        "user_birth_date": current_user.user_birth_date,
+        "user_registration_date": current_user.user_registration_date,
+        "user_role": current_user.user_role,
+        "active_subscription": None
+    }
+
+    if sub:
+        response_data["active_subscription"] = {
+            "subscribe_type_id": sub.subscribe_type_id,
+            "subscribe_type_name": sub.subscribe_type.subscribe_type_name,
+            "subscribe_finish": sub.subscribe_finish,
+            "status": "Активна"
+        }
+
+    return response_data
 
 @router.patch("/me", response_model=UserResponse)
 async def patch_me(

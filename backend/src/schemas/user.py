@@ -2,6 +2,12 @@ from pydantic import BaseModel, EmailStr
 from datetime import date
 from typing import Optional, Literal
 
+class UserActiveSubSchema(BaseModel):
+    subscribe_type_id: int
+    subscribe_type_name: str
+    subscribe_finish: date
+    status: str
+
 class UserCreate(BaseModel):
     user_name: str
     user_email: EmailStr
@@ -24,6 +30,7 @@ class UserResponse(BaseModel):
     user_birth_date: date
     user_registration_date: date
     user_role: str
+    active_subscription: Optional[UserActiveSubSchema] = None
 
     class Config:
         from_attributes = True

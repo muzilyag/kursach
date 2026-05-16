@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from sqlalchemy import func, and_, exists, text
 from datetime import date, timedelta
 from typing import Optional
@@ -9,7 +9,8 @@ from src.core.database import get_db
 from src.models.subscription import Subscribe, SubscribeType
 from src.models.payment import Payment
 from src.models.user import User
-from src.schemas.subscription import SubscriptionUpdate, SubscriptionChange, SubscriptionCreate
+from src.schemas.subscription import SubscriptionUpdate, SubscriptionChange, SubscriptionCreate, UserSubscriptionBuy
+from src.core.security import get_current_user
 
 router = APIRouter()
 
@@ -22,9 +23,71 @@ async def get_subscription_types(db: AsyncSession = Depends(get_db)):
         "subscribe_type_name": t.subscribe_type_name,
         "subscribe_type_discription": t.subscribe_type_discription,
         "subscribe_type_max_type_quality": t.subscribe_type_max_type_quality,
-        "subscribe_type_cost": t.subscribe_type_cost,
+        "subscribe_type_cost": f"{float(t.subscribe_type_cost):.2f}",
         "subscribe_type_duration": t.subscribe_type_duration
     } for t in types]
+
+@router.get("/preview-change")
+async def preview_subscription_change(
+    target_type_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    active_sub_stmt = select(Subscribe).options(
+        joinedload(Subscribe.subscribe_type)
+    ).where(
+        and_(
+            Subscribe.user_id == current_user.user_id,
+            Subscribe.subscribe_finish >= date.today()
+        )
+    ).order_by(Subscribe.subscribe_finish.desc()).limit(1)
+    
+    active_sub_result = await db.execute(active_sub_stmt)
+    active_sub = active_sub_result.scalar_one_or_none()
+    
+    target_type_result = await db.execute(
+        select(SubscribeType).where(SubscribeType.subscribe_type_id == target_type_id)
+    )
+    target_type = target_type_result.scalar_one_or_none()
+    
+    if not target_type:
+        raise HTTPException(status_code=404, detail="Целевой тариф не найден")
+        
+    base_cost = float(target_type.subscribe_type_cost)
+    
+    if not active_sub:
+        return {
+            "current_tariff_id": None,
+            "target_tariff_id": target_type_id,
+            "unused_days": 0,
+            "discount_amount": "0.00",
+            "final_payable_amount": f"{base_cost:.2f}"
+        }
+        
+    if active_sub.subscribe_type_id == target_type_id:
+        return {
+            "current_tariff_id": active_sub.subscribe_type_id,
+            "target_tariff_id": target_type_id,
+            "unused_days": max(0, (active_sub.subscribe_finish - date.today()).days + 1),
+            "discount_amount": "0.00",
+            "final_payable_amount": f"{base_cost:.2f}"
+        }
+
+    total_days = active_sub.subscribe_type.subscribe_type_duration
+    total_cost = float(active_sub.subscribe_type.subscribe_type_cost)
+    daily_cost = total_cost / total_days if total_days > 0 else 0
+    
+    unused_days = max(0, (active_sub.subscribe_finish - date.today()).days + 1)
+    discount = unused_days * daily_cost
+    final_amount = max(0.0, base_cost - discount)
+    
+    return {
+        "current_tariff_id": active_sub.subscribe_type_id,
+        "target_tariff_id": target_type_id,
+        "unused_days": unused_days,
+        "discount_amount": f"{discount:.2f}",
+        "final_payable_amount": f"{final_amount:.2f}"
+    }
 
 @router.get("/users-filtered")
 async def get_users_filtered(has_active: bool, limit: int = 1000, db: AsyncSession = Depends(get_db)):
@@ -121,7 +184,7 @@ async def get_subscriptions(
             "subscribe_type": {
                 "subscribe_type_id": s.subscribe_type.subscribe_type_id,
                 "subscribe_type_name": s.subscribe_type.subscribe_type_name,
-                "subscribe_type_cost": s.subscribe_type.subscribe_type_cost
+                "subscribe_type_cost": f"{float(s.subscribe_type.subscribe_type_cost):.2f}"
             } if s.subscribe_type else None
         })
 
@@ -239,3 +302,70 @@ async def cancel_subscription(user_id: int, type_id: int, start_date: date, db: 
     sub.subscribe_finish = date.today() - timedelta(days=1)
     await db.commit()
     return {"success": True}
+
+@router.post("/buy")
+async def buy_subscription_self_service(
+    data: UserSubscriptionBuy, 
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    active_sub_stmt = select(Subscribe).where(
+        and_(
+            Subscribe.user_id == current_user.user_id,
+            Subscribe.subscribe_finish >= date.today()
+        )
+    ).order_by(Subscribe.subscribe_finish.desc()).limit(1)
+    
+    active_sub_result = await db.execute(active_sub_stmt)
+    active_sub = active_sub_result.scalar_one_or_none()
+
+    type_result = await db.execute(
+        select(SubscribeType).where(SubscribeType.subscribe_type_id == data.subscribe_type_id)
+    )
+    sub_type = type_result.scalar_one_or_none()
+    if not sub_type:
+        raise HTTPException(status_code=404, detail="Тариф не найден")
+
+    start_date = date.today()
+    if active_sub:
+        if active_sub.subscribe_type_id == data.subscribe_type_id:
+            start_date = active_sub.subscribe_finish + timedelta(days=1)
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail="У вас есть активная подписка другого типа. Используйте смену тарифа."
+            )
+
+    finish_date = start_date + timedelta(days=sub_type.subscribe_type_duration)
+
+    sub = Subscribe(
+        user_id=current_user.user_id,
+        subscribe_type_id=data.subscribe_type_id,
+        subscribe_start=start_date,
+        subscribe_finish=finish_date
+    )
+    db.add(sub)
+    await db.flush()
+
+    max_pn_result = await db.execute(
+        select(func.max(Payment.payment_number)).where(Payment.user_id == current_user.user_id)
+    )
+    max_pn = max_pn_result.scalar() or 0
+
+    payment = Payment(
+        user_id=current_user.user_id,
+        payment_number=max_pn + 1,
+        subscribe_type_id=data.subscribe_type_id,
+        subscribe_start=start_date,
+        payment_date=date.today(),
+        payment_sum=sub_type.subscribe_type_cost,
+        payment_method=data.payment_method
+    )
+    db.add(payment)
+    
+    try:
+        await db.commit()
+        return {"success": True, "expires_at": str(finish_date)}
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))

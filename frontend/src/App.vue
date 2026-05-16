@@ -69,6 +69,12 @@ const handleLogout = () => {
         <span class="fs-4 fw-bold">MishlenKino</span>
       </RouterLink>
       <ul class="nav nav-pills flex-column mb-auto">
+        <li class="nav-item mb-2" v-if="userRole === 'user' && !currentUser?.active_subscription">
+          <RouterLink to="/subscribe" class="nav-link text-dark fw-bold mx-2 rounded-3 shadow-sm" style="background-color: #ffc107 !important;">
+            <i class="bi bi-star-fill me-2"></i>
+            Премиум доступ
+          </RouterLink>
+        </li>
         <li class="nav-item">
           <RouterLink to="/profile" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
             <i class="bi bi-person-circle me-2"></i>

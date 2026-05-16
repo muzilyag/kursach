@@ -9,7 +9,12 @@ router = APIRouter()
 async def get_stats(db: AsyncSession = Depends(get_db)):
     repo = StatsRepository(db)
     try:
-        return await repo.get_dashboard_stats()
+        stats = await repo.get_dashboard_stats()
+        if "totalRevenue" in stats and stats["totalRevenue"] is not None:
+            stats["totalRevenue"] = f"{float(stats['totalRevenue']):.2f}"
+        else:
+            stats["totalRevenue"] = "0.00"
+        return stats
     except Exception as e:
         print(f"Ошибка загрузки статистики: {e}")
         return {
@@ -18,7 +23,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
             "totalSubscriptions": 0,
             "activeSubscriptions": 0, 
             "views": 0, 
-            "totalRevenue": 0.0
+            "totalRevenue": "0.00"
         }
 
 @router.get("/debug/tables")

@@ -80,6 +80,29 @@ onMounted(loadProfile)
   <div class="container-fluid">
     <div class="row justify-content-center g-4">
       <div class="col-md-8 col-lg-6">
+        
+        <div class="card border-0 shadow-sm mb-4 overflow-hidden" style="background-color: var(--card-bg); border-radius: 16px;">
+          <div class="card-body p-0">
+            <div class="p-4" :style="user?.active_subscription ? 'background: linear-gradient(45deg, #8b7355, #a68d6d); color: white;' : 'background: #f8f9fa;'">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 class="mb-1 fw-bold" :class="{'text-dark': !user?.active_subscription}">Статус подписки</h5>
+                  <div v-if="user?.active_subscription">
+                    <span class="badge bg-white text-dark mb-2">{{ user.active_subscription.subscribe_type_name }}</span>
+                    <p class="small mb-0 opacity-75">Активна до: {{ new Date(user.active_subscription.subscribe_finish).toLocaleDateString() }}</p>
+                  </div>
+                  <div v-else>
+                    <p class="text-muted mb-0">Подписка не активна</p>
+                  </div>
+                </div>
+                <RouterLink to="/subscribe" class="btn btn-light fw-bold rounded-pill px-4 shadow-sm">
+                  {{ user?.active_subscription ? 'Продлить' : 'Оформить' }}
+                </RouterLink>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="card border-0 shadow-sm mb-4" style="background-color: var(--card-bg);">
           <div class="card-body p-4">
             <div class="d-flex align-items-center mb-4">

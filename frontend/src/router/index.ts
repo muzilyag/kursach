@@ -48,6 +48,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/subscribe',
+      name: 'subscribe',
+      component: () => import('../views/SubscribeView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/admin/dashboard',
       name: 'dashboard',
       component: DashboardView,

@@ -1,5 +1,12 @@
 import { Config } from '../config';
 
+export interface IActiveSubscription {
+    subscribe_type_id: number;
+    subscribe_type_name: string;
+    subscribe_finish: string;
+    status: string;
+}
+
 export interface IUser {
     user_id: number;
     user_name: string;
@@ -7,9 +14,10 @@ export interface IUser {
     user_birth_date: string;
     user_registration_date: string;
     user_role?: string;
+    active_subscription: IActiveSubscription | null;
 }
 
-export interface IUserCreate extends Omit<IUser, 'user_id' | 'user_registration_date'> {
+export interface IUserCreate extends Omit<IUser, 'user_id' | 'user_registration_date' | 'active_subscription'> {
     user_password?: string;
     user_registration_date?: string;
 }
@@ -424,6 +432,13 @@ export const ApiService = {
         return this.request(`${Config.api.content}/${id}/progress`, {
             method: 'PATCH',
             body: JSON.stringify({ progress })
+        });
+    },
+
+    async buySubscription(payload: { subscribe_type_id: number, payment_method: string }): Promise<any> {
+        return this.request(`${Config.api.subscriptions}/buy`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
         });
     }
 };
