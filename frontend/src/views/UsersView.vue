@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch } from 'vue'
 import { ApiService } from '../services/api'
+import { Config } from '../config'
 import type { IUser, IUserCreate } from '../services/api'
 import { Utils } from '../utils'
 import { useDataTable } from '../composables/useDataTable'
@@ -22,7 +23,7 @@ const { items, total, params, pages, load, handleSort } = useDataTable(
     sort: 'user_id', 
     order: 'asc', 
     roles: ['user'],
-    limit: 10
+    limit: Config.pagination.itemsPerPage
   }
 )
 

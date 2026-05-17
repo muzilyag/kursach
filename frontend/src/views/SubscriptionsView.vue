@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { ApiService } from '../services/api'
+import { Config } from '../config'
 import type { ISubscription, ISubscribeType, ISubscriptionChangeRequest, IUser } from '../services/api'
 import { Utils } from '../utils'
 import { useDataTable } from '../composables/useDataTable'
@@ -27,7 +28,7 @@ const selectedDuration = ref<number | null>(null)
 
 const { items, total, params, pages, load, handleSort } = useDataTable(
   (p) => ApiService.getSubscriptions(p),
-  { sort: 'subscribe_start', order: 'desc', show_expired: false, limit: 10 }
+  { sort: 'subscribe_start', order: 'desc', show_expired: false, limit: Config.pagination.itemsPerPage }
 )
 
 const changeForm = reactive<ISubscriptionChangeRequest>({

@@ -72,6 +72,11 @@ export interface ITag {
     tag_name: string;
 }
 
+export interface IPopularTag {
+    tag_name: string;
+    views_count: number;
+}
+
 export interface ICopyrightHolder {
     copyright_holder_id: number;
     copyright_holder_name: string;
@@ -320,6 +325,10 @@ export const ApiService = {
 
     async getTags(): Promise<ITag[]> {
         return this.request(Config.api.tags);
+    },
+
+    async getPopularTags(limit: number = 50): Promise<IPopularTag[]> {
+        return this.request(`${Config.api.tagsDirect}/popular?limit=${limit}`);
     },
 
     async getTagsDirect(params: any = {}): Promise<{ items: ITag[], total: number, page: number, pages: number }> {

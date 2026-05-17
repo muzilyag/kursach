@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ApiService } from '../services/api'
+import { Config } from '../config'
 import type { IContent, IContentCreate, IGenre, ITag, ICopyrightHolder } from '../services/api'
 import { Utils } from '../utils'
 import { useDataTable } from '../composables/useDataTable'
@@ -42,7 +43,7 @@ const validateTime = (field: 'h' | 'm' | 's') => {
 
 const { items, total, params, pages, load, handleSort } = useDataTable(
   (p) => ApiService.getContent(p), 
-  { sort: 'content_id', order: 'desc', limit: 10 }
+  { sort: 'content_id', order: 'desc', limit: Config.pagination.itemsPerPage }
 )
 
 const contentForm = reactive({
@@ -195,13 +196,15 @@ onMounted(async () => {
           @delete="deleteItem"
         >
           <template #cell-content_name="{ item }">
-            <div class="text-truncate cursor-help" style="max-width: 180px;" :title="item.content_name">
-              {{ item.content_name }}
+            <div class="cursor-help" :title="item.content_name">
+              {{ item.content_name.length > 17 ? item.content_name.slice(0, 17) + '...' : item.content_name }}
             </div>
           </template>
 
           <template #cell-content_type="{ item }">
-            <span class="badge rounded-pill bg-secondary text-white opacity-75 small">{{ item.content_type }}</span>
+            <span class="badge rounded-pill bg-secondary text-white opacity-75 small" :title="item.content_type">
+              {{ item.content_type.length > 6 ? item.content_type.slice(0, 5) + '...' : item.content_type }}
+            </span>
           </template>
 
           <template #cell-genres="{ item }">

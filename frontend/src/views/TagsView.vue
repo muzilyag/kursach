@@ -2,14 +2,15 @@
 import { ref, reactive, onMounted, computed, onUnmounted } from 'vue'
 import { ApiService } from '../services/api'
 import { Config } from '../config'
-import type { ITag } from '../services/api'
+import type { ITag, IPopularTag } from '../services/api'
 import { useDataTable } from '../composables/useDataTable'
 import DataTable from '../components/DataTable.vue'
 import Pagination from '../components/Pagination.vue'
 
 const columns = [
   { key: 'tag_name', label: 'Название тега', sortable: true },
-  { key: 'count', label: 'Кол-во контента' }
+  { key: 'count', label: 'Кол-во контента', sortable: true },
+  { key: 'views_count', label: 'Просмотры', sortable: true }
 ]
 
 const isEditing = ref(false)
@@ -22,14 +23,25 @@ const tagForm = reactive({
 const tagCounts = ref<Record<number, number>>({})
 const allTags = ref<ITag[]>([])
 const allContent = ref<any[]>([])
+const popularTags = ref<IPopularTag[]>([])
 
 const cloudWidth = ref(40)
+const topCloudHeight = ref(50)
 const isResizing = ref(false)
+const isResizingVertical = ref(false)
 
 const { items, total, params, pages, load, handleSort } = useDataTable(
   (p) => ApiService.getTagsDirect(p),
-  { sort: 'tag_id', order: 'desc', limit: 10 }
+  { sort: 'tag_id', order: 'desc', limit: Config.pagination.itemsPerPage }
 )
+
+const tagViewsMap = computed(() => {
+  const map: Record<string, number> = {}
+  popularTags.value.forEach(t => {
+    map[t.tag_name] = t.views_count
+  })
+  return map
+})
 
 const cloudTags = computed(() => {
   const sorted = [...allTags.value].sort((a, b) => {
@@ -49,15 +61,24 @@ const cloudTags = computed(() => {
   return result
 })
 
+const maxViews = computed(() => {
+  return popularTags.value.length ? Math.max(...popularTags.value.map(t => t.views_count)) : 1
+})
+const minViews = computed(() => {
+  return popularTags.value.length ? Math.min(...popularTags.value.map(t => t.views_count)) : 0
+})
+
 const loadStatsAndTags = async () => {
   try {
-    const [tags, contentData] = await Promise.all([
+    const [tags, contentData, popular] = await Promise.all([
       ApiService.getTags(),
-      ApiService.getContent({ limit: 10000 })
+      ApiService.getContent({ limit: 10000 }),
+      ApiService.getPopularTags(50).catch(() => [])
     ])
     
     allTags.value = tags
     allContent.value = contentData.items
+    popularTags.value = popular
     
     const counts: Record<number, number> = {}
     contentData.items.forEach(c => {
@@ -75,6 +96,21 @@ const getTagStyle = (tagId: number) => {
   const maxCount = values.length > 0 ? Math.max(...values, 1) : 1
   
   const ratio = count / maxCount
+  const minSize = 0.8
+  const maxSize = 2.8
+  const size = minSize + ratio * (maxSize - minSize)
+  const opacity = 0.5 + (ratio * 0.5)
+  
+  return {
+    fontSize: `${size}rem`,
+    opacity: opacity,
+    margin: `${10 * (1 - ratio)}px ${15 * ratio + 5}px`
+  }
+}
+
+const getPopularTagStyle = (tagName: string) => {
+  const views = tagViewsMap.value[tagName] || 0
+  const ratio = (maxViews.value === minViews.value) ? 0.5 : (views - minViews.value) / (maxViews.value - minViews.value)
   const minSize = 0.8
   const maxSize = 2.8
   const size = minSize + ratio * (maxSize - minSize)
@@ -148,13 +184,41 @@ const stopResizing = () => {
 }
 
 const handleMouseMove = (e: MouseEvent) => {
-  if (!isResizing.value) return
-  const container = document.querySelector('.tags-layout')
-  if (container) {
-    const containerRect = container.getBoundingClientRect()
-    const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100
-    if (newWidth > 20 && newWidth < 80) {
-      cloudWidth.value = newWidth
+  if (isResizing.value) {
+    const container = document.querySelector('.tags-layout')
+    if (container) {
+      const containerRect = container.getBoundingClientRect()
+      const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100
+      if (newWidth > 20 && newWidth < 80) {
+        cloudWidth.value = newWidth
+      }
+    }
+  }
+}
+
+const startResizingVertical = () => {
+  isResizingVertical.value = true
+  document.addEventListener('mousemove', handleMouseMoveVertical)
+  document.addEventListener('mouseup', stopResizingVertical)
+  document.body.style.cursor = 'row-resize'
+}
+
+const stopResizingVertical = () => {
+  isResizingVertical.value = false
+  document.removeEventListener('mousemove', handleMouseMoveVertical)
+  document.removeEventListener('mouseup', stopResizingVertical)
+  document.body.style.cursor = 'default'
+}
+
+const handleMouseMoveVertical = (e: MouseEvent) => {
+  if (isResizingVertical.value) {
+    const container = document.querySelector('.cloud-wrapper')
+    if (container) {
+      const containerRect = container.getBoundingClientRect()
+      const newHeight = ((e.clientY - containerRect.top) / containerRect.height) * 100
+      if (newHeight > 20 && newHeight < 80) {
+        topCloudHeight.value = newHeight
+      }
     }
   }
 }
@@ -167,6 +231,8 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('mousemove', handleMouseMove)
   document.removeEventListener('mouseup', stopResizing)
+  document.removeEventListener('mousemove', handleMouseMoveVertical)
+  document.removeEventListener('mouseup', stopResizingVertical)
 })
 </script>
 
@@ -178,11 +244,12 @@ onUnmounted(() => {
 
     <div class="tags-layout d-flex align-items-stretch">
       <div class="cloud-wrapper d-flex flex-column" :style="{ width: cloudWidth + '%' }">
-        <div class="card shadow-sm border-0 flex-grow-1">
+        
+        <div class="card shadow-sm border-0 d-flex flex-column" :style="{ height: topCloudHeight + '%' }">
           <div class="card-header bg-white p-3 border-bottom-0 text-center flex-shrink-0">
-            <h5 class="mb-0 fw-bold">Облако популярности</h5>
+            <h5 class="mb-0 fw-bold">Популярность по количеству</h5>
           </div>
-          <div class="card-body d-flex flex-wrap align-items-center justify-content-center p-4 cloud-container flex-grow-1">
+          <div class="card-body d-flex flex-wrap align-items-center justify-content-center p-4 cloud-container flex-grow-1 overflow-auto">
             <span 
               v-for="tag in cloudTags" 
               :key="tag.tag_id" 
@@ -196,6 +263,29 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
+
+        <div class="resizer-h" @mousedown="startResizingVertical"></div>
+
+        <div class="card shadow-sm border-0 d-flex flex-column" :style="{ height: (100 - topCloudHeight) + '%' }">
+          <div class="card-header bg-white p-3 border-bottom-0 text-center flex-shrink-0">
+            <h5 class="mb-0 fw-bold">Популярность по просмотрам</h5>
+          </div>
+          <div class="card-body d-flex flex-wrap align-items-center justify-content-center p-4 cloud-container flex-grow-1 overflow-auto">
+            <span 
+              v-for="tag in cloudTags" 
+              :key="'views-' + tag.tag_id" 
+              class="tag-cloud-item popular-tag"
+              :style="getPopularTagStyle(tag.tag_name)"
+              :title="'Просмотры: ' + (tagViewsMap[tag.tag_name] || 0)"
+            >
+              #{{ tag.tag_name }}
+            </span>
+            <div v-if="allTags.length === 0" class="text-muted small">
+              Нет данных по просмотрам
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <div class="resizer" @mousedown="startResizing"></div>
@@ -258,7 +348,13 @@ onUnmounted(() => {
 
               <template #cell-count="{ item }">
                 <span class="badge bg-light text-dark border">
-                  {{ tagCounts[item.tag_id] || 0 }}
+                  {{ item.count ?? 0 }}
+                </span>
+              </template>
+
+              <template #cell-views_count="{ item }">
+                <span class="badge bg-light text-success border">
+                  {{ item.views_count ?? 0 }}
                 </span>
               </template>
             </DataTable>
@@ -280,12 +376,16 @@ onUnmounted(() => {
 
 <style scoped>
 .tags-layout {
-  min-height: 600px;
+  min-height: 750px;
   gap: 0;
   user-select: none;
 }
 
-.cloud-wrapper,
+.cloud-wrapper {
+  min-width: 250px;
+  position: relative;
+}
+
 .right-wrapper {
   min-width: 250px;
 }
@@ -294,7 +394,6 @@ onUnmounted(() => {
   align-content: center;
   text-align: center;
   background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(248,249,250,0.4) 100%);
-  overflow: hidden;
 }
 
 .tag-cloud-item {
@@ -310,6 +409,13 @@ onUnmounted(() => {
   transform: scale(1.1);
   color: var(--bs-primary);
   opacity: 1 !important;
+}
+
+.popular-tag {
+  color: #198754;
+}
+.popular-tag:hover {
+  color: #146c43;
 }
 
 .resizer {
@@ -335,6 +441,31 @@ onUnmounted(() => {
 .resizer:hover::after {
   background: #0d6efd;
   width: 5px;
+}
+
+.resizer-h {
+  height: 16px;
+  cursor: row-resize;
+  background: transparent;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 10;
+}
+
+.resizer-h::after {
+  content: "";
+  height: 3px;
+  width: 40px;
+  background: #dee2e6;
+  border-radius: 3px;
+}
+
+.resizer-h:hover::after {
+  background: #0d6efd;
+  height: 5px;
 }
 
 .smallest {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ApiService } from '../services/api'
+import { Config } from '../config'
 import type { ICopyrightHolder } from '../services/api'
 import { useDataTable } from '../composables/useDataTable'
 import DataTable from '../components/DataTable.vue'
@@ -24,7 +25,7 @@ const allContent = ref<any[]>([])
 
 const { items, total, params, pages, load, handleSort } = useDataTable(
   (p) => ApiService.getCopyrightHoldersDirect(p),
-  { sort: 'copyright_holder_id', order: 'desc', limit: 10 }
+  { sort: 'copyright_holder_id', order: 'desc', limit: Config.pagination.itemsPerPage }
 )
 
 const loadContent = async () => {

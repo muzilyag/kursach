@@ -5,7 +5,8 @@ from typing import List
 from sqlalchemy import select, delete, desc, asc, func
 from src.core.database import get_db
 from src.schemas.content import TagCreate, TagRead
-from src.models.content import Tag, Content
+from src.models.content import Tag, Content, content_tag_association
+from src.models.viewing import Viewing
 
 router = APIRouter(tags=["Tags"])
 
@@ -19,26 +20,78 @@ async def get_tags(
     db: AsyncSession = Depends(get_db)
 ):
     offset = (page - 1) * limit
-    query = select(Tag)
+    
+    query = (
+        select(
+            Tag.tag_id,
+            Tag.tag_name,
+            func.count(func.distinct(content_tag_association.c.content_id)).label("count"),
+            func.count(Viewing.content_id).label("views_count")
+        )
+        .select_from(Tag)
+        .outerjoin(content_tag_association, Tag.tag_id == content_tag_association.c.tag_id)
+        .outerjoin(Viewing, content_tag_association.c.content_id == Viewing.content_id)
+        .group_by(Tag.tag_id, Tag.tag_name)
+    )
+    
     count_query = select(func.count()).select_from(Tag)
+    
     if search:
         query = query.where(Tag.tag_name.ilike(f"%{search}%"))
         count_query = count_query.where(Tag.tag_name.ilike(f"%{search}%"))
-    column = getattr(Tag, sort, Tag.tag_id)
-    if order == "desc":
-        query = query.order_by(desc(column))
+        
+    if sort == "count":
+        sort_column = func.count(func.distinct(content_tag_association.c.content_id))
+    elif sort == "views_count":
+        sort_column = func.count(Viewing.content_id)
     else:
-        query = query.order_by(asc(column))
+        sort_column = getattr(Tag, sort, Tag.tag_id)
+        
+    if order == "desc":
+        query = query.order_by(desc(sort_column))
+    else:
+        query = query.order_by(asc(sort_column))
+        
     result = await db.execute(query.limit(limit).offset(offset))
-    items = result.scalars().all()
+    rows = result.all()
+    
+    items = [
+        {
+            "tag_id": row[0],
+            "tag_name": row[1],
+            "count": row[2],
+            "views_count": row[3]
+        }
+        for row in rows
+    ]
+    
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
+    
     return {
         "items": items,
         "total": total,
         "page": page,
         "pages": (total + limit - 1) // limit
     }
+
+@router.get("/popular")
+async def get_popular_tags(
+    limit: int = Query(50, ge=1, le=500),
+    db: AsyncSession = Depends(get_db)
+):
+    query = (
+        select(Tag.tag_name, func.count().label("views_count"))
+        .select_from(Tag)
+        .join(content_tag_association, Tag.tag_id == content_tag_association.c.tag_id)
+        .join(Viewing, content_tag_association.c.content_id == Viewing.content_id)
+        .group_by(Tag.tag_name)
+        .order_by(func.count().desc())
+        .limit(limit)
+    )
+    
+    result = await db.execute(query)
+    return [{"tag_name": row[0], "views_count": row[1]} for row in result.all()]
 
 @router.post("", response_model=TagRead)
 async def create_tag(tag_data: TagCreate, db: AsyncSession = Depends(get_db)):

@@ -1,3 +1,4 @@
+import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select
@@ -6,6 +7,7 @@ from src.models.user import User
 from src.models.content import Content, Genre, CopyrightHolder, Tag
 from src.models.payment import Payment
 from src.models.viewing import Viewing
+from src.models.subscription import Subscribe, SubscribeType
 from src.core.security import get_current_user
 
 router = APIRouter()
@@ -58,6 +60,73 @@ async def get_dashboard_statistics(
         {"method": row[0], "amount": f"{float(row[1]):.2f}"} for row in payment_methods_query.all()
     ]
 
+    today = datetime.date.today()
+    
+    active_subs_query = await db.execute(
+        select(func.count(Subscribe.user_id)).where(Subscribe.subscribe_finish >= today)
+    )
+    active_subs = active_subs_query.scalar() or 0
+
+    expired_subs_query = await db.execute(
+        select(func.count(Subscribe.user_id)).where(Subscribe.subscribe_finish < today)
+    )
+    expired_subs = expired_subs_query.scalar() or 0
+
+    tariffs_query = await db.execute(
+        select(
+            SubscribeType.subscribe_type_name,
+            func.sum(Payment.payment_sum),
+            func.count(Payment.payment_number)
+        )
+        .join(Payment, SubscribeType.subscribe_type_id == Payment.subscribe_type_id)
+        .group_by(SubscribeType.subscribe_type_name)
+    )
+    revenue_by_tariffs = [
+        {
+            "tariff_name": row[0],
+            "amount": f"{float(row[1]):.2f}" if row[1] is not None else "0.00",
+            "count": row[2]
+        }
+        for row in tariffs_query.all()
+    ]
+
+    start_this_week = today - datetime.timedelta(days=6)
+    start_past_week = today - datetime.timedelta(days=13)
+    end_past_week = today - datetime.timedelta(days=7)
+
+    this_week_query = await db.execute(
+        select(func.count(User.user_id)).where(User.user_registration_date >= start_this_week)
+    )
+    total_new_this_week = this_week_query.scalar() or 0
+
+    past_week_query = await db.execute(
+        select(func.count(User.user_id)).where(
+            User.user_registration_date >= start_past_week,
+            User.user_registration_date <= end_past_week
+        )
+    )
+    total_new_past_week = past_week_query.scalar() or 0
+
+    if total_new_past_week == 0:
+        growth_percentage = 0.0
+    else:
+        growth_percentage = round(((total_new_this_week - total_new_past_week) / total_new_past_week) * 100, 1)
+
+    daily_query = await db.execute(
+        select(User.user_registration_date, func.count(User.user_id))
+        .where(User.user_registration_date >= start_this_week)
+        .group_by(User.user_registration_date)
+    )
+    daily_counts = {row[0]: row[1] for row in daily_query.all()}
+
+    daily_dynamics = []
+    for i in range(7):
+        current_day = start_this_week + datetime.timedelta(days=i)
+        daily_dynamics.append({
+            "date": current_day.strftime("%Y-%m-%d"),
+            "count": daily_counts.get(current_day, 0)
+        })
+
     return {
         "total_users": total_users,
         "total_revenue": f"{float(total_revenue):.2f}",
@@ -68,6 +137,16 @@ async def get_dashboard_statistics(
         "total_viewings": total_viewings,
         "breakdown": {
             "content_types": content_types_breakdown,
-            "payment_methods": payment_methods_breakdown
+            "payment_methods": payment_methods_breakdown,
+            "subscriptions_status": {
+                "active": active_subs,
+                "expired": expired_subs
+            },
+            "revenue_by_tariffs": revenue_by_tariffs,
+            "registrations_dynamics": {
+                "total_new_this_week": total_new_this_week,
+                "growth_percentage": growth_percentage,
+                "daily": daily_dynamics
+            }
         }
     }

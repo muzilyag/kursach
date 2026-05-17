@@ -8,6 +8,7 @@ const route = useRoute()
 const isDbConnected = ref(false)
 const currentUser = ref<IUser | null>(null)
 const userRole = ref<string | null>(null)
+const isPinned = ref(true)
 
 const isAuthPage = computed(() => ['login', 'register'].includes(route.name as string))
 const isStaff = computed(() => ['admin', 'content_manager'].includes(userRole.value || ''))
@@ -63,91 +64,104 @@ const handleLogout = () => {
   </div>
 
   <div v-else class="d-flex min-vh-100" style="background-color: var(--light-bg);">
-    <aside v-if="userRole" class="sidebar d-flex flex-column p-3 vh-100 position-fixed" style="background-color: var(--sidebar-bg); color: var(--sidebar-text-light);">
-      <RouterLink to="/catalog" class="d-flex align-items-center mb-4 text-decoration-none" style="color: var(--sidebar-text-light);">
-        <i class="bi bi-film fs-3 me-2" style="color: var(--sidebar-primary);"></i>
-        <span class="fs-4 fw-bold">MishlenKino</span>
+    <aside v-if="userRole" 
+           class="sidebar d-flex flex-column p-3 vh-100 position-fixed" 
+           :class="{ 'slim-mode': !isPinned }"
+           style="background-color: var(--sidebar-bg); color: var(--sidebar-text-light);">
+      
+      <RouterLink to="/catalog" class="d-flex align-items-center justify-content-center mb-4 text-decoration-none" style="color: var(--sidebar-text-light);">
+        <i class="bi bi-film fs-3 sidebar-icon" style="color: var(--sidebar-primary);"></i>
+        <span class="fs-4 fw-bold sidebar-text ms-2">MishlenKino</span>
       </RouterLink>
+      
       <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item mb-2" v-if="userRole === 'user' && !currentUser?.active_subscription">
-          <RouterLink to="/subscribe" class="nav-link text-dark fw-bold mx-2 rounded-3 shadow-sm" style="background-color: #ffc107 !important;">
-            <i class="bi bi-star-fill me-2"></i>
-            Премиум доступ
+          <RouterLink to="/subscribe" class="nav-link text-dark fw-bold d-flex align-items-center rounded-3 shadow-sm" style="background-color: #ffc107 !important;">
+            <i class="bi bi-star-fill sidebar-icon"></i>
+            <span class="sidebar-text ms-2">Премиум доступ</span>
           </RouterLink>
         </li>
         <li class="nav-item">
-          <RouterLink to="/profile" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-person-circle me-2"></i>
-            Профиль
+          <RouterLink to="/profile" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
+            <i class="bi bi-person-circle sidebar-icon"></i>
+            <span class="sidebar-text ms-2">Профиль</span>
           </RouterLink>
         </li>
         <li class="nav-item">
-          <RouterLink to="/catalog" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-grid me-2"></i>
-            Каталог
+          <RouterLink to="/catalog" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
+            <i class="bi bi-grid sidebar-icon"></i>
+            <span class="sidebar-text ms-2">Каталог</span>
           </RouterLink>
         </li>
         <li class="nav-item" v-if="userRole === 'admin'">
-          <RouterLink to="/admin/dashboard" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-speedometer2 me-2"></i>
-            Дашборд
+          <RouterLink to="/admin/dashboard" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
+            <i class="bi bi-speedometer2 sidebar-icon"></i>
+            <span class="sidebar-text ms-2">Дашборд</span>
           </RouterLink>
         </li>
         <li v-if="userRole === 'admin'">
-          <RouterLink to="/users" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-people me-2"></i>
-            Пользователи
+          <RouterLink to="/users" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
+            <i class="bi bi-people sidebar-icon"></i>
+            <span class="sidebar-text ms-2">Пользователи</span>
           </RouterLink>
         </li>
         <li v-if="isStaff">
-          <RouterLink to="/content" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-collection-play me-2"></i>
-            Контент
+          <RouterLink to="/content" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
+            <i class="bi bi-collection-play sidebar-icon"></i>
+            <span class="sidebar-text ms-2">Контент</span>
           </RouterLink>
         </li>
         <li v-if="isStaff">
-          <RouterLink to="/tags" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-tags me-2"></i>
-            Теги
+          <RouterLink to="/tags" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
+            <i class="bi bi-tags sidebar-icon"></i>
+            <span class="sidebar-text ms-2">Теги</span>
           </RouterLink>
         </li>
         <li v-if="isStaff">
-          <RouterLink to="/copyright-holders" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-shield-check me-2"></i>
-            Правообладатели
+          <RouterLink to="/copyright-holders" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
+            <i class="bi bi-shield-check sidebar-icon"></i>
+            <span class="sidebar-text ms-2">Правообладатели</span>
           </RouterLink>
         </li>
         <li v-if="userRole === 'admin'">
-          <RouterLink to="/subscriptions" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-card-checklist me-2"></i>
-            Подписки
+          <RouterLink to="/subscriptions" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
+            <i class="bi bi-card-checklist sidebar-icon"></i>
+            <span class="sidebar-text ms-2">Подписки</span>
           </RouterLink>
         </li>
         <li v-if="userRole === 'admin'">
-          <RouterLink to="/reports" class="nav-link text-white" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-bar-chart me-2"></i>
-            Отчеты
+          <RouterLink to="/reports" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
+            <i class="bi bi-bar-chart sidebar-icon"></i>
+            <span class="sidebar-text ms-2">Отчеты</span>
           </RouterLink>
         </li>
       </ul>
       <hr style="border-color: var(--sidebar-border);">
-      <div class="status-indicator">
-        <small style="color: var(--sidebar-text-muted);" class="d-block mb-1">Статус БД:</small>
-        <div v-if="isDbConnected" style="color: var(--success-color);" class="fw-bold small">
-          <i class="bi bi-check-circle me-1"></i>Активна
+      <div class="status-indicator d-flex flex-column align-items-center align-items-md-start px-2">
+        <small style="color: var(--sidebar-text-muted);" class="d-block mb-1 sidebar-text">Статус БД:</small>
+        <div v-if="isDbConnected" style="color: var(--success-color);" class="d-flex align-items-center fw-bold small">
+          <i class="bi bi-check-circle sidebar-icon"></i>
+          <span class="sidebar-text ms-2">Активна</span>
         </div>
-        <div v-else style="color: var(--danger-color);" class="fw-bold small">
-          <i class="bi bi-x-circle me-1"></i>Недоступна
+        <div v-else style="color: var(--danger-color);" class="d-flex align-items-center fw-bold small">
+          <i class="bi bi-x-circle sidebar-icon"></i>
+          <span class="sidebar-text ms-2">Недоступна</span>
         </div>
       </div>
     </aside>
 
-    <main class="main-content flex-grow-1" :style="{ marginLeft: userRole ? '280px' : '0' }">
+    <main class="main-content flex-grow-1" :style="{ marginLeft: userRole ? (isPinned ? '280px' : '76px') : '0' }">
       <header class="header d-flex justify-content-between align-items-center p-3 mb-4 shadow-sm" style="background-color: var(--card-bg); border-bottom: 1px solid var(--border-color);">
-        <RouterLink to="/catalog" class="text-decoration-none d-flex align-items-center">
+        
+        <div class="d-flex align-items-center">
+          <button v-if="userRole" class="btn text-muted p-0 me-3 fs-4 border-0" @click="isPinned = !isPinned">
+            <i class="bi bi-list"></i>
+          </button>
+          <RouterLink to="/catalog" class="text-decoration-none d-flex align-items-center">
             <i class="bi bi-film fs-4 me-2" style="color: var(--sidebar-primary);"></i>
             <h4 class="m-0 fw-bold" style="color: var(--text-darker);">MishlenKino</h4>
-        </RouterLink>
+          </RouterLink>
+        </div>
         
         <div class="user-actions">
           <div v-if="!userRole" class="d-flex gap-2">
@@ -177,6 +191,40 @@ const handleLogout = () => {
 </template>
 
 <style>
-.sidebar { width: 280px; z-index: 1000; }
-.main-content { min-height: 100vh; }
+.sidebar { 
+  width: 280px; 
+  z-index: 65536; 
+  transition: width 0.3s ease;
+  overflow-x: hidden;
+  white-space: nowrap;
+}
+
+.sidebar.slim-mode:not(:hover) {
+  width: 76px;
+}
+
+.sidebar.slim-mode:not(:hover) .sidebar-text {
+  display: none;
+}
+
+.sidebar.slim-mode:not(:hover) .nav-link {
+  padding-left: 0;
+  padding-right: 0;
+  justify-content: center;
+}
+
+.sidebar.slim-mode:not(:hover) .sidebar-icon {
+  margin: 0 !important;
+}
+
+.sidebar-icon {
+  font-size: 1.25rem;
+  min-width: 28px;
+  text-align: center;
+}
+
+.main-content { 
+  min-height: 100vh; 
+  transition: margin-left 0.3s ease;
+}
 </style>

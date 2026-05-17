@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { ApiService, type IDashboardStats } from '../services/api'
+import { ApiService } from '../services/api'
 
-const stats = ref<IDashboardStats | null>(null)
+const stats = ref<any | null>(null)
 const isLoading = ref(true)
 const errorMessage = ref('')
 
@@ -18,12 +18,28 @@ const fetchStats = async () => {
 
 const totalContentCount = computed(() => {
   if (!stats.value?.breakdown?.content_types) return 0
-  return stats.value.breakdown.content_types.reduce((acc, item) => acc + item.count, 0)
+  return stats.value.breakdown.content_types.reduce((acc: number, item: any) => acc + item.count, 0)
 })
 
 const totalPaymentAmount = computed(() => {
   if (!stats.value?.breakdown?.payment_methods) return 0
-  return stats.value.breakdown.payment_methods.reduce((acc, item) => acc + parseFloat(item.amount), 0)
+  return stats.value.breakdown.payment_methods.reduce((acc: number, item: any) => acc + parseFloat(item.amount), 0)
+})
+
+const totalTariffAmount = computed(() => {
+  if (!stats.value?.breakdown?.revenue_by_tariffs) return 0
+  return stats.value.breakdown.revenue_by_tariffs.reduce((acc: number, item: any) => acc + parseFloat(item.amount), 0)
+})
+
+const totalSubsCount = computed(() => {
+  if (!stats.value?.breakdown?.subscriptions_status) return 0
+  return stats.value.breakdown.subscriptions_status.active + stats.value.breakdown.subscriptions_status.expired
+})
+
+const maxRegistrationCount = computed(() => {
+  if (!stats.value?.breakdown?.registrations_dynamics?.daily) return 1
+  const counts = stats.value.breakdown.registrations_dynamics.daily.map((d: any) => d.count)
+  return Math.max(...counts, 1)
 })
 
 const getContentPercentage = (count: number) => {
@@ -34,6 +50,21 @@ const getContentPercentage = (count: number) => {
 const getPaymentPercentage = (amount: string) => {
   if (totalPaymentAmount.value === 0) return 0
   return Math.round((parseFloat(amount) / totalPaymentAmount.value) * 100)
+}
+
+const getTariffPercentage = (amount: string) => {
+  if (totalTariffAmount.value === 0) return 0
+  return Math.round((parseFloat(amount) / totalTariffAmount.value) * 100)
+}
+
+const getSubPercentage = (count: number) => {
+  if (totalSubsCount.value === 0) return 0
+  return Math.round((count / totalSubsCount.value) * 100)
+}
+
+const formatDate = (dateStr: string) => {
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
 }
 
 onMounted(fetchStats)
@@ -148,7 +179,7 @@ onMounted(fetchStats)
         </div>
       </div>
 
-      <div class="row g-4">
+      <div class="row g-4 mb-4">
         <div class="col-12 col-lg-6">
           <div class="card border-0 shadow-sm p-4" style="background-color: var(--card-bg); border-radius: 16px;">
             <h5 class="fw-bold mb-4" style="color: var(--text-darker);">Распределение контента</h5>
@@ -176,6 +207,76 @@ onMounted(fetchStats)
               <div class="progress" style="height: 10px; background-color: var(--light-bg); border-radius: 5px;">
                 <div class="progress-bar bg-success" role="progressbar" 
                      :style="{ width: getPaymentPercentage(item.amount) + '%' }"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-6">
+          <div class="card border-0 shadow-sm p-4" style="background-color: var(--card-bg); border-radius: 16px;">
+            <h5 class="fw-bold mb-4" style="color: var(--text-darker);">Статус подписок</h5>
+            <div v-if="stats.breakdown.subscriptions_status" class="d-flex flex-column gap-3">
+              <div>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="fw-bold text-muted small">АКТИВНЫЕ</span>
+                  <span class="fw-bold small text-success">{{ stats.breakdown.subscriptions_status.active }} шт. ({{ getSubPercentage(stats.breakdown.subscriptions_status.active) }}%)</span>
+                </div>
+                <div class="progress" style="height: 10px; background-color: var(--light-bg); border-radius: 5px;">
+                  <div class="progress-bar bg-success" role="progressbar" :style="{ width: getSubPercentage(stats.breakdown.subscriptions_status.active) + '%' }"></div>
+                </div>
+              </div>
+              <div>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="fw-bold text-muted small">ИСТЕКШИЕ</span>
+                  <span class="fw-bold small text-danger">{{ stats.breakdown.subscriptions_status.expired }} шт. ({{ getSubPercentage(stats.breakdown.subscriptions_status.expired) }}%)</span>
+                </div>
+                <div class="progress" style="height: 10px; background-color: var(--light-bg); border-radius: 5px;">
+                  <div class="progress-bar bg-danger" role="progressbar" :style="{ width: getSubPercentage(stats.breakdown.subscriptions_status.expired) + '%' }"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+          <div class="card border-0 shadow-sm p-4" style="background-color: var(--card-bg); border-radius: 16px;">
+            <h5 class="fw-bold mb-4" style="color: var(--text-darker);">Выручка по тарифам</h5>
+            <div v-for="item in stats.breakdown.revenue_by_tariffs" :key="item.tariff_name" class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-bold text-muted small">{{ item.tariff_name }} ({{ item.count }} шт.)</span>
+                <span class="fw-bold small" style="color: var(--text-darker);">{{ parseFloat(item.amount).toLocaleString() }} ₽ ({{ getTariffPercentage(item.amount) }}%)</span>
+              </div>
+              <div class="progress" style="height: 10px; background-color: var(--light-bg); border-radius: 5px;">
+                <div class="progress-bar bg-info" role="progressbar" :style="{ width: getTariffPercentage(item.amount) + '%' }"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-12">
+          <div class="card border-0 shadow-sm p-4" style="background-color: var(--card-bg); border-radius: 16px;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h5 class="fw-bold m-0" style="color: var(--text-darker);">Динамика регистраций за неделю</h5>
+              <div v-if="stats.breakdown.registrations_dynamics" class="text-end">
+                <span class="fs-4 fw-bold text-primary">+{{ stats.breakdown.registrations_dynamics.total_new_this_week }}</span>
+                <span class="small text-muted ms-2">новых пользователей</span>
+                <span v-if="stats.breakdown.registrations_dynamics.growth_percentage !== undefined" 
+                      :class="['small ms-2 fw-bold', stats.breakdown.registrations_dynamics.growth_percentage >= 0 ? 'text-success' : 'text-danger']">
+                  ({{ stats.breakdown.registrations_dynamics.growth_percentage >= 0 ? '+' : '' }}{{ stats.breakdown.registrations_dynamics.growth_percentage }}%)
+                </span>
+              </div>
+            </div>
+            <div v-if="stats.breakdown.registrations_dynamics?.daily" class="d-flex align-items-end justify-content-between pt-3" style="height: 150px;">
+              <div v-for="day in stats.breakdown.registrations_dynamics.daily" :key="day.date" class="d-flex flex-column align-items-center flex-grow-1 mx-1">
+                <span class="small fw-bold mb-2" style="color: var(--text-darker);">{{ day.count }}</span>
+                <div class="w-100 rounded-top" 
+                     :style="{ height: ((day.count / maxRegistrationCount) * 100) + 'px', minHeight: day.count > 0 ? '4px' : '0px', backgroundColor: 'var(--sidebar-primary)' }">
+                </div>
+                <span class="smallest text-muted mt-2 text-nowrap">{{ formatDate(day.date) }}</span>
               </div>
             </div>
           </div>
