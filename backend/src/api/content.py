@@ -194,12 +194,10 @@ async def update_viewing_progress(
     result = await db.execute(query)
     viewing = result.scalar_one_or_none()
 
-    now = datetime.datetime.now()
-
     if viewing:
         viewing.viewing_progress = data.progress
-        viewing.viewing_finish = now
     else:
+        now = datetime.datetime.now()
         viewing = Viewing(
             user_id=current_user.user_id,
             content_id=content_id,
