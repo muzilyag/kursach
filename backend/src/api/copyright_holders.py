@@ -5,7 +5,7 @@ from typing import List
 from sqlalchemy import select, delete, desc, asc, func
 from src.core.database import get_db
 from src.schemas.content import CopyrightHolderCreate, CopyrightHolderRead
-from src.models.content import CopyrightHolder, Content
+from src.models.content import CopyrightHolder, Content, content_copyright_association
 
 router = APIRouter(tags=["Copyright Holders"])
 
@@ -19,24 +19,63 @@ async def get_copyright_holders(
     db: AsyncSession = Depends(get_db)
 ):
     offset = (page - 1) * limit
-    query = select(CopyrightHolder)
+    
+    query = (
+        select(
+            CopyrightHolder.copyright_holder_id,
+            CopyrightHolder.copyright_holder_name,
+            CopyrightHolder.copyright_holder_phone,
+            CopyrightHolder.copyright_holder_email,
+            func.count(content_copyright_association.c.content_id).label("content_count")
+        )
+        .select_from(CopyrightHolder)
+        .outerjoin(content_copyright_association, CopyrightHolder.copyright_holder_id == content_copyright_association.c.copyright_holder_id)
+        .group_by(
+            CopyrightHolder.copyright_holder_id,
+            CopyrightHolder.copyright_holder_name,
+            CopyrightHolder.copyright_holder_phone,
+            CopyrightHolder.copyright_holder_email
+        )
+    )
+    
     count_query = select(func.count()).select_from(CopyrightHolder)
+    
     if search:
         query = query.where(CopyrightHolder.copyright_holder_name.ilike(f"%{search}%"))
         count_query = count_query.where(CopyrightHolder.copyright_holder_name.ilike(f"%{search}%"))
-    column = getattr(CopyrightHolder, sort, CopyrightHolder.copyright_holder_id)
-    if order == "desc":
-        query = query.order_by(desc(column))
+        
+    if sort == "content_count":
+        sort_column = func.count(content_copyright_association.c.content_id)
     else:
-        query = query.order_by(asc(column))
+        sort_column = getattr(CopyrightHolder, sort, CopyrightHolder.copyright_holder_id)
+        
+    if order == "desc":
+        query = query.order_by(desc(sort_column))
+    else:
+        query = query.order_by(asc(sort_column))
+        
     result = await db.execute(query.limit(limit).offset(offset))
-    items = result.scalars().all()
+    rows = result.all()
+    
+    items = [
+        {
+            "copyright_holder_id": row[0],
+            "copyright_holder_name": row[1],
+            "copyright_holder_phone": row[2],
+            "copyright_holder_email": row[3],
+            "content_count": row[4]
+        }
+        for row in rows
+    ]
+    
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
+    
     return {
         "items": items,
         "total": total,
         "page": page,
+        "limit": limit,
         "pages": (total + limit - 1) // limit
     }
 

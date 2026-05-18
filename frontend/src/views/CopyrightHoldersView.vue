@@ -9,7 +9,8 @@ import Pagination from '../components/Pagination.vue'
 
 const columns = [
   { key: 'copyright_holder_name', label: 'Правообладатель', sortable: true },
-  { key: 'contacts', label: 'Контактные данные' }
+  { key: 'contacts', label: 'Контакты' },
+  { key: 'content_count', label: 'Контент', sortable: true }
 ]
 
 const isEditing = ref(false)
@@ -25,7 +26,7 @@ const allContent = ref<any[]>([])
 
 const { items, total, params, pages, load, handleSort } = useDataTable(
   (p) => ApiService.getCopyrightHoldersDirect(p),
-  { sort: 'copyright_holder_id', order: 'desc', limit: Config.pagination.itemsPerPage }
+  { sort: 'copyright_holder_name', order: 'desc', limit: Config.pagination.itemsPerPage }
 )
 
 const loadContent = async () => {
@@ -158,7 +159,6 @@ onMounted(() => {
             >
               <template #cell-copyright_holder_name="{ item }">
                 <div class="fw-bold text-dark">{{ item.copyright_holder_name }}</div>
-                <div class="text-muted smallest">ID: {{ item.copyright_holder_id }}</div>
               </template>
 
               <template #cell-contacts="{ item }">
@@ -173,6 +173,10 @@ onMounted(() => {
                     Контактные данные не указаны
                   </div>
                 </div>
+              </template>
+
+              <template #cell-content_count="{ item }">
+                <div class="fw-semibold text-dark">{{ item.content_count ?? 0 }}</div>
               </template>
             </DataTable>
           </div>
@@ -191,7 +195,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.smallest { font-size: 0.75rem; }
 .italic { font-style: italic; }
 .checkbox-list-container {
   max-height: 200px;

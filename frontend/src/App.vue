@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { ApiService } from './services/api'
 import type { IUser } from './services/api'
+import Sidebar from './components/Sidebar.vue'
 
 const route = useRoute()
 const isDbConnected = ref(false)
@@ -11,7 +12,6 @@ const userRole = ref<string | null>(null)
 const isPinned = ref(true)
 
 const isAuthPage = computed(() => ['login', 'register'].includes(route.name as string))
-const isStaff = computed(() => ['admin', 'content_manager'].includes(userRole.value || ''))
 
 const roleLabels: Record<string, string> = {
   admin: 'Администратор',
@@ -41,7 +41,7 @@ const initializeApp = async () => {
     isDbConnected.value = !!health
     currentUser.value = user
   } catch (e) {
-    console.error('Initialization error:', e)
+    console.error(e)
   }
 }
 
@@ -64,91 +64,13 @@ const handleLogout = () => {
   </div>
 
   <div v-else class="d-flex min-vh-100" style="background-color: var(--light-bg);">
-    <aside v-if="userRole" 
-           class="sidebar d-flex flex-column p-3 vh-100 position-fixed" 
-           :class="{ 'slim-mode': !isPinned }"
-           style="background-color: var(--sidebar-bg); color: var(--sidebar-text-light);">
-      
-      <RouterLink to="/catalog" class="d-flex align-items-center justify-content-center mb-4 text-decoration-none" style="color: var(--sidebar-text-light);">
-        <i class="bi bi-film fs-3 sidebar-icon" style="color: var(--sidebar-primary);"></i>
-        <span class="fs-4 fw-bold sidebar-text ms-2">MishlenKino</span>
-      </RouterLink>
-      
-      <ul class="nav nav-pills flex-column mb-auto">
-        <li class="nav-item mb-2" v-if="userRole === 'user' && !currentUser?.active_subscription">
-          <RouterLink to="/subscribe" class="nav-link text-dark fw-bold d-flex align-items-center rounded-3 shadow-sm" style="background-color: #ffc107 !important;">
-            <i class="bi bi-star-fill sidebar-icon"></i>
-            <span class="sidebar-text ms-2">Премиум доступ</span>
-          </RouterLink>
-        </li>
-        <li class="nav-item">
-          <RouterLink to="/profile" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-person-circle sidebar-icon"></i>
-            <span class="sidebar-text ms-2">Профиль</span>
-          </RouterLink>
-        </li>
-        <li class="nav-item">
-          <RouterLink to="/catalog" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-grid sidebar-icon"></i>
-            <span class="sidebar-text ms-2">Каталог</span>
-          </RouterLink>
-        </li>
-        <li class="nav-item" v-if="userRole === 'admin'">
-          <RouterLink to="/admin/dashboard" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-speedometer2 sidebar-icon"></i>
-            <span class="sidebar-text ms-2">Дашборд</span>
-          </RouterLink>
-        </li>
-        <li v-if="userRole === 'admin'">
-          <RouterLink to="/users" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-people sidebar-icon"></i>
-            <span class="sidebar-text ms-2">Пользователи</span>
-          </RouterLink>
-        </li>
-        <li v-if="isStaff">
-          <RouterLink to="/content" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-collection-play sidebar-icon"></i>
-            <span class="sidebar-text ms-2">Контент</span>
-          </RouterLink>
-        </li>
-        <li v-if="isStaff">
-          <RouterLink to="/tags" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-tags sidebar-icon"></i>
-            <span class="sidebar-text ms-2">Теги</span>
-          </RouterLink>
-        </li>
-        <li v-if="isStaff">
-          <RouterLink to="/copyright-holders" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-shield-check sidebar-icon"></i>
-            <span class="sidebar-text ms-2">Правообладатели</span>
-          </RouterLink>
-        </li>
-        <li v-if="userRole === 'admin'">
-          <RouterLink to="/subscriptions" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-card-checklist sidebar-icon"></i>
-            <span class="sidebar-text ms-2">Подписки</span>
-          </RouterLink>
-        </li>
-        <li v-if="userRole === 'admin'">
-          <RouterLink to="/reports" class="nav-link text-white d-flex align-items-center" active-class="active" style="--bs-nav-pills-link-active-bg: var(--sidebar-primary);">
-            <i class="bi bi-bar-chart sidebar-icon"></i>
-            <span class="sidebar-text ms-2">Отчеты</span>
-          </RouterLink>
-        </li>
-      </ul>
-      <hr style="border-color: var(--sidebar-border);">
-      <div class="status-indicator d-flex flex-column align-items-center align-items-md-start px-2">
-        <small style="color: var(--sidebar-text-muted);" class="d-block mb-1 sidebar-text">Статус БД:</small>
-        <div v-if="isDbConnected" style="color: var(--success-color);" class="d-flex align-items-center fw-bold small">
-          <i class="bi bi-check-circle sidebar-icon"></i>
-          <span class="sidebar-text ms-2">Активна</span>
-        </div>
-        <div v-else style="color: var(--danger-color);" class="d-flex align-items-center fw-bold small">
-          <i class="bi bi-x-circle sidebar-icon"></i>
-          <span class="sidebar-text ms-2">Недоступна</span>
-        </div>
-      </div>
-    </aside>
+    
+    <Sidebar 
+      :user-role="userRole" 
+      :current-user="currentUser" 
+      :is-pinned="isPinned" 
+      :is-db-connected="isDbConnected" 
+    />
 
     <main class="main-content flex-grow-1" :style="{ marginLeft: userRole ? (isPinned ? '280px' : '76px') : '0' }">
       <header class="header d-flex justify-content-between align-items-center p-3 mb-4 shadow-sm" style="background-color: var(--card-bg); border-bottom: 1px solid var(--border-color);">
@@ -165,8 +87,8 @@ const handleLogout = () => {
         
         <div class="user-actions">
           <div v-if="!userRole" class="d-flex gap-2">
-            <RouterLink to="/login" class="btn px-4 rounded-pill" style="border: 1px solid var(--sidebar-primary); color: var(--sidebar-primary);">Войти</RouterLink>
-            <RouterLink to="/register" class="btn px-4 rounded-pill" style="background-color: var(--sidebar-primary); color: var(--sidebar-text-light);">Регистрация</RouterLink>
+            <RouterLink to="/login" class="btn btn-guest-login px-4">Войти</RouterLink>
+            <RouterLink to="/register" class="btn btn-guest-register px-4">Регистрация</RouterLink>
           </div>
           <div v-else class="user-profile d-flex align-items-center">
             <div class="text-end me-3 d-none d-md-block">
@@ -191,40 +113,37 @@ const handleLogout = () => {
 </template>
 
 <style>
-.sidebar { 
-  width: 280px; 
-  z-index: 65536; 
-  transition: width 0.3s ease;
-  overflow-x: hidden;
-  white-space: nowrap;
-}
-
-.sidebar.slim-mode:not(:hover) {
-  width: 76px;
-}
-
-.sidebar.slim-mode:not(:hover) .sidebar-text {
-  display: none;
-}
-
-.sidebar.slim-mode:not(:hover) .nav-link {
-  padding-left: 0;
-  padding-right: 0;
-  justify-content: center;
-}
-
-.sidebar.slim-mode:not(:hover) .sidebar-icon {
-  margin: 0 !important;
-}
-
-.sidebar-icon {
-  font-size: 1.25rem;
-  min-width: 28px;
-  text-align: center;
-}
-
 .main-content { 
   min-height: 100vh; 
   transition: margin-left 0.3s ease;
+}
+
+.btn-guest-login, 
+.btn-guest-register {
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.25s ease-in-out;
+  border: 1px solid var(--sidebar-primary);
+}
+
+.btn-guest-login {
+  color: var(--sidebar-primary);
+  background-color: transparent;
+}
+
+.btn-guest-login:hover {
+  background-color: var(--sidebar-primary);
+  color: var(--sidebar-text-light);
+}
+
+.btn-guest-register {
+  background-color: var(--sidebar-primary);
+  color: var(--sidebar-text-light);
+}
+
+.btn-guest-register:hover {
+  background-color: transparent;
+  color: var(--sidebar-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 </style>
