@@ -14,3 +14,4 @@ reportlab
 pytest
 pytest_asyncio
 httpx
+ruff

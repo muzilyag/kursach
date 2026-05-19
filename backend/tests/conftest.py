@@ -1,10 +1,9 @@
-import pytest
 import pytest_asyncio
 import asyncio
 from datetime import date
 from typing import AsyncGenerator
 from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker, async_scoped_session
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import NullPool
 from sqlalchemy import text
 

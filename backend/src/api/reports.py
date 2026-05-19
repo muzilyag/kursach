@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import date
 import io
 import csv
-import os
 from pathlib import Path
 from typing import List, Dict
 from decimal import Decimal

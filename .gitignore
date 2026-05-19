@@ -37,3 +37,4 @@ logs/
 *.log
 
 issues.txt
+.ruff_cache/

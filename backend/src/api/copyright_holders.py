@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from typing import List
 from sqlalchemy import select, delete, desc, asc, func
 from src.core.database import get_db
 from src.schemas.content import CopyrightHolderCreate, CopyrightHolderRead

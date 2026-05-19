@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import date
 from typing import Optional, Literal
 
@@ -31,9 +31,7 @@ class UserResponse(BaseModel):
     user_registration_date: date
     user_role: str
     active_subscription: Optional[UserActiveSubSchema] = None
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserLogin(BaseModel):
     identifier: str

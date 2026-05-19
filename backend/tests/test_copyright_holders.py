@@ -1,7 +1,5 @@
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from src.models.content import CopyrightHolder
 
 @pytest.mark.asyncio
 async def test_get_copyright_holders(client: AsyncClient):

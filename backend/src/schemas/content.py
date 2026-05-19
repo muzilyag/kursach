@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import date, time
 from typing import Optional, List
 
@@ -10,8 +10,7 @@ class TagCreate(TagBase):
 
 class TagRead(TagBase):
     tag_id: int
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CopyrightHolderBase(BaseModel):
     copyright_holder_name: str
@@ -26,14 +25,12 @@ class CopyrightHolderRead(BaseModel):
     copyright_holder_name: str
     copyright_holder_phone: str
     copyright_holder_email: str
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class GenreRead(BaseModel):
     genre_id: int
     genre_name: str
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ContentRead(BaseModel):
     content_id: int
@@ -45,8 +42,7 @@ class ContentRead(BaseModel):
     genres: List[GenreRead] = []
     copyright_holders: List[CopyrightHolderRead] = []
     tags: List[TagRead] = []
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ContentCreate(BaseModel):
     content_name: str

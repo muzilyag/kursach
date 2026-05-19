@@ -1,7 +1,5 @@
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from src.models.user import User
 
 @pytest.mark.asyncio
 async def test_get_users_as_admin(auth_client_admin: AsyncClient):

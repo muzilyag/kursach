@@ -20,7 +20,8 @@ class SubscriptionRepository:
             params["end_date"] = end_date
             
         where_sql = " AND ".join(where_clauses)
-        if where_sql: where_sql = f"WHERE {where_sql}"
+        if where_sql: 
+            where_sql = f"WHERE {where_sql}"
             
         query = text(f"""
             SELECT 

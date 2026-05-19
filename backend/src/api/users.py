@@ -10,7 +10,7 @@ from src.core.database import get_db
 from src.repositories.user_repository import UserRepository
 from src.schemas.user import UserCreate, UserUpdate, UserResponse, UserPasswordUpdate
 from src.models.user import User
-from src.models.subscription import Subscribe, SubscribeType
+from src.models.subscription import Subscribe
 from src.core.security import RoleChecker, get_password_hash, get_current_user, verify_password
 
 router = APIRouter()
