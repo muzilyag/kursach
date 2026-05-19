@@ -11,3 +11,6 @@ flake8
 bcrypt
 PyJWT
 reportlab
+pytest
+pytest_asyncio
+httpx
