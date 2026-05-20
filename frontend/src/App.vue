@@ -20,13 +20,13 @@ const roleLabels: Record<string, string> = {
 }
 
 const displayRole = computed(() => {
-  return userRole.value ? (roleLabels[userRole.value] || userRole.value) : ''
+  return userRole.value ? roleLabels[userRole.value] || userRole.value : ''
 })
 
 const initializeApp = async () => {
   const token = localStorage.getItem('token')
   userRole.value = ApiService.getRoleFromToken()
-  
+
   if (isAuthPage.value || !token) {
     currentUser.value = null
     return
@@ -37,7 +37,7 @@ const initializeApp = async () => {
       ApiService.checkHealth().catch(() => false),
       ApiService.getMe().catch(() => null)
     ])
-    
+
     isDbConnected.value = !!health
     currentUser.value = user
   } catch (e) {
@@ -45,9 +45,13 @@ const initializeApp = async () => {
   }
 }
 
-watch(() => route.path, () => {
-  initializeApp()
-}, { immediate: true })
+watch(
+  () => route.path,
+  () => {
+    initializeApp()
+  },
+  { immediate: true }
+)
 
 onMounted(() => {
   initializeApp()
@@ -63,28 +67,36 @@ const handleLogout = () => {
     <RouterView />
   </div>
 
-  <div v-else class="d-flex min-vh-100" style="background-color: var(--light-bg);">
-    
-    <Sidebar 
-      :user-role="userRole" 
-      :current-user="currentUser" 
-      :is-pinned="isPinned" 
-      :is-db-connected="isDbConnected" 
+  <div v-else class="d-flex min-vh-100" style="background-color: var(--light-bg)">
+    <Sidebar
+      :user-role="userRole"
+      :current-user="currentUser"
+      :is-pinned="isPinned"
+      :is-db-connected="isDbConnected"
     />
 
-    <main class="main-content flex-grow-1" :style="{ marginLeft: userRole ? (isPinned ? '280px' : '76px') : '0' }">
-      <header class="header d-flex justify-content-between align-items-center p-3 mb-4 shadow-sm" style="background-color: var(--card-bg); border-bottom: 1px solid var(--border-color);">
-        
+    <main
+      class="main-content flex-grow-1"
+      :style="{ marginLeft: userRole ? (isPinned ? '280px' : '76px') : '0' }"
+    >
+      <header
+        class="header d-flex justify-content-between align-items-center p-3 mb-4 shadow-sm"
+        style="background-color: var(--card-bg); border-bottom: 1px solid var(--border-color)"
+      >
         <div class="d-flex align-items-center">
-          <button v-if="userRole" class="btn text-muted p-0 me-3 fs-4 border-0" @click="isPinned = !isPinned">
+          <button
+            v-if="userRole"
+            class="btn text-muted p-0 me-3 fs-4 border-0"
+            @click="isPinned = !isPinned"
+          >
             <i class="bi bi-list"></i>
           </button>
           <RouterLink to="/catalog" class="text-decoration-none d-flex align-items-center">
-            <i class="bi bi-film fs-4 me-2" style="color: var(--sidebar-primary);"></i>
-            <h4 class="m-0 fw-bold" style="color: var(--text-darker);">MishlenKino</h4>
+            <i class="bi bi-film fs-4 me-2" style="color: var(--sidebar-primary)"></i>
+            <h4 class="m-0 fw-bold" style="color: var(--text-darker)">MishlenKino</h4>
           </RouterLink>
         </div>
-        
+
         <div class="user-actions">
           <div v-if="!userRole" class="d-flex gap-2">
             <RouterLink to="/login" class="btn btn-guest-login px-4">Войти</RouterLink>
@@ -92,14 +104,31 @@ const handleLogout = () => {
           </div>
           <div v-else class="user-profile d-flex align-items-center">
             <div class="text-end me-3 d-none d-md-block">
-              <div class="fw-bold" style="color: var(--text-darker);">
+              <div class="fw-bold" style="color: var(--text-darker)">
                 {{ currentUser?.user_name || 'Загрузка...' }}
-                <span class="badge ms-1" v-if="userRole" style="background-color: var(--sidebar-primary); color: var(--sidebar-text-light);">{{ displayRole }}</span>
+                <span
+                  class="badge ms-1"
+                  v-if="userRole"
+                  style="background-color: var(--sidebar-primary); color: var(--sidebar-text-light)"
+                  >{{ displayRole }}</span
+                >
               </div>
-              <button @click="handleLogout" class="btn btn-link p-0 text-decoration-none small" style="color: var(--danger-color);">Выйти</button>
+              <button
+                @click="handleLogout"
+                class="btn btn-link p-0 text-decoration-none small"
+                style="color: var(--danger-color)"
+              >
+                Выйти
+              </button>
             </div>
             <RouterLink to="/profile">
-              <img :src="`https://ui-avatars.com/api/?name=${currentUser?.user_name || 'U'}&background=8b7355&color=fff`" width="40" height="40" class="rounded-circle border" style="border-color: var(--border-color) !important;">
+              <img
+                :src="`https://ui-avatars.com/api/?name=${currentUser?.user_name || 'U'}&background=8b7355&color=fff`"
+                width="40"
+                height="40"
+                class="rounded-circle border"
+                style="border-color: var(--border-color) !important"
+              />
             </RouterLink>
           </div>
         </div>
@@ -113,12 +142,12 @@ const handleLogout = () => {
 </template>
 
 <style>
-.main-content { 
-  min-height: 100vh; 
+.main-content {
+  min-height: 100vh;
   transition: margin-left 0.3s ease;
 }
 
-.btn-guest-login, 
+.btn-guest-login,
 .btn-guest-register {
   border-radius: 8px;
   font-weight: 600;

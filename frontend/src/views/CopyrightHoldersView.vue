@@ -33,7 +33,7 @@ const loadContent = async () => {
   try {
     const data = await ApiService.getContent({ limit: 10000 })
     allContent.value = data.items
-  } catch (e) {}
+  } catch {}
 }
 
 const setEdit = (item: ICopyrightHolder) => {
@@ -43,8 +43,10 @@ const setEdit = (item: ICopyrightHolder) => {
   holderForm.copyright_holder_phone = item.copyright_holder_phone || ''
   holderForm.copyright_holder_email = item.copyright_holder_email || ''
   holderForm.content_ids = allContent.value
-    .filter(c => c.copyright_holders?.some((h: any) => h.copyright_holder_id === item.copyright_holder_id))
-    .map(c => c.content_id)
+    .filter((c) =>
+      c.copyright_holders?.some((h: any) => h.copyright_holder_id === item.copyright_holder_id)
+    )
+    .map((c) => c.content_id)
 }
 
 const resetForm = () => {
@@ -95,15 +97,23 @@ onMounted(() => {
       </div>
       <div class="col-md-4">
         <div class="input-group">
-          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-          <input v-model="params.search" @input="load" type="text" class="form-control border-start-0" placeholder="Поиск...">
+          <span class="input-group-text bg-white border-end-0"
+            ><i class="bi bi-search text-muted"></i
+          ></span>
+          <input
+            v-model="params.search"
+            @input="load"
+            type="text"
+            class="form-control border-start-0"
+            placeholder="Поиск..."
+          />
         </div>
       </div>
     </div>
 
     <div class="row g-4">
       <div class="col-md-4">
-        <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
+        <div class="card shadow-sm border-0 sticky-top" style="top: 20px">
           <div class="card-header bg-white py-3 border-0">
             <h5 class="card-title mb-0 fw-bold">{{ isEditing ? 'Редактировать' : 'Добавить' }}</h5>
           </div>
@@ -111,22 +121,43 @@ onMounted(() => {
             <form @submit.prevent="saveHolder">
               <div class="mb-3">
                 <label class="form-label small fw-bold">Название / ФИО</label>
-                <input v-model="holderForm.copyright_holder_name" type="text" class="form-control" required>
+                <input
+                  v-model="holderForm.copyright_holder_name"
+                  type="text"
+                  class="form-control"
+                  required
+                />
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-bold">Телефон</label>
-                <input v-model="holderForm.copyright_holder_phone" type="text" class="form-control" placeholder="+7 (___) ___ - __ - __">
+                <input
+                  v-model="holderForm.copyright_holder_phone"
+                  type="text"
+                  class="form-control"
+                  placeholder="+7 (___) ___ - __ - __"
+                />
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-bold">Email</label>
-                <input v-model="holderForm.copyright_holder_email" type="email" class="form-control" placeholder="example@mail.com">
+                <input
+                  v-model="holderForm.copyright_holder_email"
+                  type="email"
+                  class="form-control"
+                  placeholder="example@mail.com"
+                />
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-bold">Связанный контент</label>
                 <div class="border rounded p-2 bg-white form-control checkbox-list-container">
                   <div class="form-check mb-1" v-for="c in allContent" :key="c.content_id">
-                    <input class="form-check-input" type="checkbox" :value="c.content_id" :id="'content-'+c.content_id" v-model="holderForm.content_ids">
-                    <label class="form-check-label small" :for="'content-'+c.content_id">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      :value="c.content_id"
+                      :id="'content-' + c.content_id"
+                      v-model="holderForm.content_ids"
+                    />
+                    <label class="form-check-label small" :for="'content-' + c.content_id">
                       {{ c.content_name }}
                     </label>
                   </div>
@@ -136,7 +167,9 @@ onMounted(() => {
                 <button type="submit" class="btn btn-primary flex-grow-1">
                   {{ isEditing ? 'Обновить' : 'Сохранить' }}
                 </button>
-                <button v-if="isEditing" type="button" class="btn btn-light" @click="resetForm">Отмена</button>
+                <button v-if="isEditing" type="button" class="btn btn-light" @click="resetForm">
+                  Отмена
+                </button>
               </div>
             </form>
           </div>
@@ -146,9 +179,9 @@ onMounted(() => {
       <div class="col-md-8">
         <div class="card shadow-sm border-0">
           <div class="card-body p-0">
-            <DataTable 
-              :columns="columns" 
-              :items="items" 
+            <DataTable
+              :columns="columns"
+              :items="items"
               :has-actions="true"
               :current-page="params.page"
               :page-size="params.limit"
@@ -164,12 +197,17 @@ onMounted(() => {
               <template #cell-contacts="{ item }">
                 <div class="d-flex flex-column gap-1">
                   <div v-if="item.copyright_holder_phone" class="small">
-                    <i class="bi bi-telephone text-primary me-2"></i>{{ item.copyright_holder_phone }}
+                    <i class="bi bi-telephone text-primary me-2"></i
+                    >{{ item.copyright_holder_phone }}
                   </div>
                   <div v-if="item.copyright_holder_email" class="small">
-                    <i class="bi bi-envelope text-primary me-2"></i>{{ item.copyright_holder_email }}
+                    <i class="bi bi-envelope text-primary me-2"></i
+                    >{{ item.copyright_holder_email }}
                   </div>
-                  <div v-if="!item.copyright_holder_phone && !item.copyright_holder_email" class="text-muted small italic">
+                  <div
+                    v-if="!item.copyright_holder_phone && !item.copyright_holder_email"
+                    class="text-muted small italic"
+                  >
                     Контактные данные не указаны
                   </div>
                 </div>
@@ -181,11 +219,16 @@ onMounted(() => {
             </DataTable>
           </div>
           <div class="card-footer bg-white border-top-0 py-3">
-            <Pagination 
-              :current-page="params.page" 
-              :pages="pages" 
-              :total="total" 
-              @update:page="(p) => { params.page = p; load(); }" 
+            <Pagination
+              :current-page="params.page"
+              :pages="pages"
+              :total="total"
+              @update:page="
+                (p) => {
+                  params.page = p
+                  load()
+                }
+              "
             />
           </div>
         </div>
@@ -195,7 +238,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.italic { font-style: italic; }
+.italic {
+  font-style: italic;
+}
 .checkbox-list-container {
   max-height: 200px;
   overflow-y: auto;

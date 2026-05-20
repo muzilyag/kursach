@@ -56,35 +56,51 @@ onMounted(loadData)
 <template>
   <div class="container py-5">
     <div class="text-center mb-5">
-      <h1 class="display-5 fw-bold" style="color: var(--text-darker);">Выберите ваш план</h1>
-      <p class="text-muted">Откройте доступ к эксклюзивному контенту MishlenKino в лучшем качестве.</p>
+      <h1 class="display-5 fw-bold" style="color: var(--text-darker)">Выберите ваш план</h1>
+      <p class="text-muted">
+        Откройте доступ к эксклюзивному контенту MishlenKino в лучшем качестве.
+      </p>
     </div>
 
     <div v-if="isLoading" class="text-center py-5">
-      <div class="spinner-border" style="color: var(--sidebar-primary);"></div>
+      <div class="spinner-border" style="color: var(--sidebar-primary)"></div>
     </div>
 
     <div v-else class="row g-4 justify-content-center">
       <div class="col-12 mb-4">
         <div class="d-flex justify-content-center gap-3">
-          <div @click="selectedPayment = 'карта'"
-               class="payment-badge" :class="{ active: selectedPayment === 'карта' }">
+          <div
+            @click="selectedPayment = 'карта'"
+            class="payment-badge"
+            :class="{ active: selectedPayment === 'карта' }"
+          >
             КАРТА
           </div>
-          <div @click="selectedPayment = 'сбп'"
-               class="payment-badge" :class="{ active: selectedPayment === 'сбп' }">
+          <div
+            @click="selectedPayment = 'сбп'"
+            class="payment-badge"
+            :class="{ active: selectedPayment === 'сбп' }"
+          >
             СБП
           </div>
-          <div @click="selectedPayment = 'криптовалюта'"
-               class="payment-badge" :class="{ active: selectedPayment === 'криптовалюта' }">
+          <div
+            @click="selectedPayment = 'криптовалюта'"
+            class="payment-badge"
+            :class="{ active: selectedPayment === 'криптовалюта' }"
+          >
             КРИПТА
           </div>
         </div>
       </div>
 
       <div v-for="plan in plans" :key="plan.subscribe_type_id" class="col-md-4">
-        <div class="card h-100 border-0 shadow-sm plan-card" 
-             :class="{ 'current-plan-border': currentUser?.active_subscription?.subscribe_type_id === plan.subscribe_type_id }">
+        <div
+          class="card h-100 border-0 shadow-sm plan-card"
+          :class="{
+            'current-plan-border':
+              currentUser?.active_subscription?.subscribe_type_id === plan.subscribe_type_id
+          }"
+        >
           <div class="card-body p-4 text-center d-flex flex-column">
             <h3 class="fw-bold mb-3">{{ plan.subscribe_type_name }}</h3>
             <div class="price mb-4">
@@ -92,17 +108,37 @@ onMounted(loadData)
               <span class="text-muted"> ₽</span>
             </div>
             <ul class="list-unstyled mb-4 flex-grow-1 text-start">
-              <li class="mb-2"><i class="bi bi-check2-circle me-2 text-success"></i> Доступ на {{ plan.subscribe_type_duration }} дней</li>
-              <li class="mb-2"><i class="bi bi-check2-circle me-2 text-success"></i> Качество до {{ plan.subscribe_type_max_type_quality }}p</li>
+              <li class="mb-2">
+                <i class="bi bi-check2-circle me-2 text-success"></i> Доступ на
+                {{ plan.subscribe_type_duration }} дней
+              </li>
+              <li class="mb-2">
+                <i class="bi bi-check2-circle me-2 text-success"></i> Качество до
+                {{ plan.subscribe_type_max_type_quality }}p
+              </li>
               <li class="text-muted small">{{ plan.subscribe_type_discription }}</li>
             </ul>
-            
-            <button @click="handleAction(plan.subscribe_type_id)" 
-                    :disabled="isProcessing || currentUser?.active_subscription?.subscribe_type_id === plan.subscribe_type_id"
-                    class="btn w-100 py-3 fw-bold purchase-btn"
-                    :class="currentUser?.active_subscription?.subscribe_type_id === plan.subscribe_type_id ? 'btn-secondary' : 'btn-primary'">
+
+            <button
+              @click="handleAction(plan.subscribe_type_id)"
+              :disabled="
+                isProcessing ||
+                currentUser?.active_subscription?.subscribe_type_id === plan.subscribe_type_id
+              "
+              class="btn w-100 py-3 fw-bold purchase-btn"
+              :class="
+                currentUser?.active_subscription?.subscribe_type_id === plan.subscribe_type_id
+                  ? 'btn-secondary'
+                  : 'btn-primary'
+              "
+            >
               <span v-if="isProcessing" class="spinner-border spinner-border-sm me-2"></span>
-              <span v-if="currentUser?.active_subscription?.subscribe_type_id === plan.subscribe_type_id">Текущий тариф</span>
+              <span
+                v-if="
+                  currentUser?.active_subscription?.subscribe_type_id === plan.subscribe_type_id
+                "
+                >Текущий тариф</span
+              >
               <span v-else-if="currentUser?.active_subscription">Сменить тариф</span>
               <span v-else>Оформить подписку</span>
             </button>
@@ -122,7 +158,7 @@ onMounted(loadData)
 }
 .plan-card:hover {
   transform: translateY(-10px);
-  box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1) !important;
   border: 1px solid var(--sidebar-primary) !important;
 }
 .current-plan-border {

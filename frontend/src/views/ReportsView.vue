@@ -32,14 +32,14 @@ const isResizing = ref(false)
 
 const columns = computed(() => {
   if (reportData.value.length === 0) return []
-  
+
   if (selectedReport.value === 'seasonality') {
-    return Object.keys(reportData.value[0]).map(key => ({
+    return Object.keys(reportData.value[0]).map((key) => ({
       key: key,
       label: key
     }))
   }
-  
+
   if (selectedReport.value === 'activity') {
     return [
       { key: 'Подписка', label: 'Тариф' },
@@ -47,7 +47,7 @@ const columns = computed(() => {
       { key: 'Уникальный контент', label: 'Контент (ед.)' }
     ]
   }
-  
+
   if (selectedReport.value === 'revenue') {
     return [
       { key: 'Подписка', label: 'Тариф' },
@@ -55,7 +55,7 @@ const columns = computed(() => {
       { key: 'Выручка (руб.)', label: 'Выручка (₽)' }
     ]
   }
-  
+
   return []
 })
 
@@ -99,16 +99,16 @@ const updateChart = () => {
   let type: any = 'bar'
   if (selectedReport.value === 'revenue') type = 'pie'
   if (selectedReport.value === 'seasonality') type = 'line'
-  
-  let data: any = { labels: [], datasets: [] }
+
+  const data: any = { labels: [], datasets: [] }
 
   if (selectedReport.value === 'seasonality') {
-    const months = reportData.value.map(d => d['Месяц'])
-    const genres = Object.keys(reportData.value[0]).filter(k => k !== 'Месяц' && k !== 'Год')
+    const months = reportData.value.map((d) => d['Месяц'])
+    const genres = Object.keys(reportData.value[0]).filter((k) => k !== 'Месяц' && k !== 'Год')
     data.labels = months
     data.datasets = genres.map((genre, i) => ({
       label: genre,
-      data: reportData.value.map(d => d[genre] || 0),
+      data: reportData.value.map((d) => d[genre] || 0),
       backgroundColor: `hsla(${i * 50}, 70%, 60%, 0.5)`,
       borderColor: `hsla(${i * 50}, 70%, 60%, 1)`,
       borderWidth: 2,
@@ -116,18 +116,22 @@ const updateChart = () => {
       fill: false
     }))
   } else if (selectedReport.value === 'activity') {
-    data.labels = reportData.value.map(d => d['Подписка'])
-    data.datasets = [{
-      label: 'Среднее время (мин)',
-      data: reportData.value.map(d => d['Среднее время (мин)']),
-      backgroundColor: '#3b82f6'
-    }]
+    data.labels = reportData.value.map((d) => d['Подписка'])
+    data.datasets = [
+      {
+        label: 'Среднее время (мин)',
+        data: reportData.value.map((d) => d['Среднее время (мин)']),
+        backgroundColor: '#3b82f6'
+      }
+    ]
   } else if (selectedReport.value === 'revenue') {
-    data.labels = reportData.value.map(d => d['Подписка'])
-    data.datasets = [{
-      data: reportData.value.map(d => d['Выручка (руб.)']),
-      backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6']
-    }]
+    data.labels = reportData.value.map((d) => d['Подписка'])
+    data.datasets = [
+      {
+        data: reportData.value.map((d) => d['Выручка (руб.)']),
+        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6']
+      }
+    ]
   }
 
   chartInstance = new Chart(ctx, {
@@ -148,7 +152,7 @@ const generate = async () => {
   reportData.value = []
   try {
     let response: any[] = []
-    
+
     if (selectedReport.value === 'seasonality') {
       response = await ApiService.getSeasonalityReport(filterYear.value)
     } else if (selectedReport.value === 'activity') {
@@ -156,7 +160,7 @@ const generate = async () => {
     } else if (selectedReport.value === 'revenue') {
       response = await ApiService.getRevenueReport(startDate.value || '', endDate.value || '')
     }
-    
+
     reportData.value = response
     await nextTick()
     updateChart()
@@ -176,7 +180,11 @@ const downloadReport = async (format: 'csv' | 'pdf') => {
     } else if (selectedReport.value === 'activity') {
       blob = await ApiService.exportActivityReport(format)
     } else if (selectedReport.value === 'revenue') {
-      blob = await ApiService.exportRevenueReport(startDate.value || '', endDate.value || '', format)
+      blob = await ApiService.exportRevenueReport(
+        startDate.value || '',
+        endDate.value || '',
+        format
+      )
     } else {
       throw new Error('Неизвестный тип отчета')
     }
@@ -207,7 +215,11 @@ onUnmounted(() => {
         <div class="row g-3 align-items-end">
           <div class="col-md-3">
             <label class="form-label small fw-bold text-secondary text-uppercase">Тип отчёта</label>
-            <select v-model="selectedReport" class="form-select shadow-none" @change="reportData = []">
+            <select
+              v-model="selectedReport"
+              class="form-select shadow-none"
+              @change="reportData = []"
+            >
               <option v-for="type in reportTypes" :key="type.id" :value="type.id">
                 {{ type.name }}
               </option>
@@ -216,17 +228,17 @@ onUnmounted(() => {
 
           <div v-if="selectedReport === 'seasonality'" class="col-md-2">
             <label class="form-label small fw-bold text-secondary text-uppercase">Год</label>
-            <input v-model.number="filterYear" type="number" class="form-control shadow-none">
+            <input v-model.number="filterYear" type="number" class="form-control shadow-none" />
           </div>
 
           <template v-if="selectedReport === 'revenue'">
             <div class="col-md-2">
               <label class="form-label small fw-bold text-secondary text-uppercase">Начало</label>
-              <input v-model="startDate" type="date" class="form-control shadow-none">
+              <input v-model="startDate" type="date" class="form-control shadow-none" />
             </div>
             <div class="col-md-2">
               <label class="form-label small fw-bold text-secondary text-uppercase">Конец</label>
-              <input v-model="endDate" type="date" class="form-control shadow-none">
+              <input v-model="endDate" type="date" class="form-control shadow-none" />
             </div>
           </template>
 
@@ -235,12 +247,26 @@ onUnmounted(() => {
               <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
               Сформировать
             </button>
-            <button class="btn btn-outline-success" @click="downloadReport('csv')" :disabled="!reportData.length || downloadingFormat === 'csv'">
-              <span v-if="downloadingFormat === 'csv'" class="spinner-border spinner-border-sm me-2"></span>
+            <button
+              class="btn btn-outline-success"
+              @click="downloadReport('csv')"
+              :disabled="!reportData.length || downloadingFormat === 'csv'"
+            >
+              <span
+                v-if="downloadingFormat === 'csv'"
+                class="spinner-border spinner-border-sm me-2"
+              ></span>
               CSV
             </button>
-            <button class="btn btn-outline-danger" @click="downloadReport('pdf')" :disabled="!reportData.length || downloadingFormat === 'pdf'">
-               <span v-if="downloadingFormat === 'pdf'" class="spinner-border spinner-border-sm me-2"></span>
+            <button
+              class="btn btn-outline-danger"
+              @click="downloadReport('pdf')"
+              :disabled="!reportData.length || downloadingFormat === 'pdf'"
+            >
+              <span
+                v-if="downloadingFormat === 'pdf'"
+                class="spinner-border spinner-border-sm me-2"
+              ></span>
               PDF
             </button>
           </div>
@@ -249,12 +275,19 @@ onUnmounted(() => {
     </div>
 
     <div v-if="reportData.length" class="reports-layout d-flex">
-      <div class="table-container card shadow-sm border-0 overflow-hidden" :style="{ width: tableWidth + '%' }">
+      <div
+        class="table-container card shadow-sm border-0 overflow-hidden"
+        :style="{ width: tableWidth + '%' }"
+      >
         <div class="table-responsive h-100">
           <table class="table table-hover mb-0 align-middle text-nowrap">
             <thead class="table-light sticky-top">
               <tr>
-                <th v-for="col in columns" :key="col.key" class="py-3 border-0 text-secondary text-uppercase small">
+                <th
+                  v-for="col in columns"
+                  :key="col.key"
+                  class="py-3 border-0 text-secondary text-uppercase small"
+                >
                   {{ col.label }}
                 </th>
               </tr>
@@ -277,12 +310,15 @@ onUnmounted(() => {
 
       <div class="resizer" @mousedown="startResizing"></div>
 
-      <div class="chart-container-wrapper card shadow-sm border-0 d-flex flex-column" :style="{ width: (100 - tableWidth) + '%' }">
+      <div
+        class="chart-container-wrapper card shadow-sm border-0 d-flex flex-column"
+        :style="{ width: 100 - tableWidth + '%' }"
+      >
         <div class="card-header bg-white border-0 py-3 flex-shrink-0">
           <h5 class="h6 mb-0 fw-bold text-secondary text-uppercase">Визуализация данных</h5>
         </div>
-        <div class="card-body p-2 flex-grow-1" style="position: relative; min-height: 400px;">
-          <div style="position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px;">
+        <div class="card-body p-2 flex-grow-1" style="position: relative; min-height: 400px">
+          <div style="position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px">
             <canvas ref="chartCanvas"></canvas>
           </div>
         </div>
@@ -326,7 +362,7 @@ onUnmounted(() => {
   z-index: 10;
 }
 .resizer::after {
-  content: "";
+  content: '';
   width: 2px;
   height: 40px;
   background: #dee2e6;

@@ -42,10 +42,7 @@ const selectedGenresCount = computed(() => params.genre_ids.length)
 
 const loadFilters = async () => {
   try {
-    const [genresData, tagsData] = await Promise.all([
-      ApiService.getGenres(),
-      ApiService.getTags()
-    ])
+    const [genresData, tagsData] = await Promise.all([ApiService.getGenres(), ApiService.getTags()])
     genres.value = genresData
     tags.value = tagsData
   } catch (e: any) {
@@ -86,7 +83,7 @@ const saveProgress = async () => {
   if (selectedMovie.value) {
     try {
       await ApiService.updateContentProgress(
-        selectedMovie.value.content_id, 
+        selectedMovie.value.content_id,
         Math.floor(currentProgress.value)
       )
     } catch (e) {
@@ -140,15 +137,23 @@ watch(searchQuery, (newVal) => {
   }, 500)
 })
 
-watch(() => params.genre_ids, () => {
-  params.page = 1
-  loadCatalog()
-}, { deep: true })
+watch(
+  () => params.genre_ids,
+  () => {
+    params.page = 1
+    loadCatalog()
+  },
+  { deep: true }
+)
 
-watch(() => params.tag_ids, () => {
-  params.page = 1
-  loadCatalog()
-}, { deep: true })
+watch(
+  () => params.tag_ids,
+  () => {
+    params.page = 1
+    loadCatalog()
+  },
+  { deep: true }
+)
 
 onMounted(() => {
   loadFilters()
@@ -164,91 +169,129 @@ onUnmounted(() => {
 
 <template>
   <div class="container-fluid">
-    <div class="text-center py-5 rounded-4 mb-5 shadow" style="background-color: var(--sidebar-bg); color: var(--sidebar-text-light);">
+    <div
+      class="text-center py-5 rounded-4 mb-5 shadow"
+      style="background-color: var(--sidebar-bg); color: var(--sidebar-text-light)"
+    >
       <h1 class="display-4 fw-bold">MishlenKino</h1>
       <p class="lead">Ваш персональный кинозал с лучшим контентом.</p>
     </div>
 
-    <div class="card border-0 shadow-sm mb-4 p-3" style="background-color: var(--card-bg); border-radius: 16px;">
+    <div
+      class="card border-0 shadow-sm mb-4 p-3"
+      style="background-color: var(--card-bg); border-radius: 16px"
+    >
       <div class="row g-3 align-items-center">
         <div class="col-12 col-lg-4">
           <div class="input-group">
-            <span class="input-group-text border-0 bg-transparent" style="color: var(--text-muted);">
+            <span class="input-group-text border-0 bg-transparent" style="color: var(--text-muted)">
               <i class="bi bi-search"></i>
             </span>
-            <input 
-              v-model="searchQuery" 
-              type="text" 
-              class="form-control border-0 bg-transparent ps-0" 
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="form-control border-0 bg-transparent ps-0"
               placeholder="Найти фильм или сериал..."
-              style="color: var(--text-darker);"
-            >
+              style="color: var(--text-darker)"
+            />
           </div>
         </div>
 
         <div class="col-12 col-md-4 col-lg-3">
           <div class="dropdown w-100">
-            <button 
-              class="btn w-100 text-start dropdown-toggle d-flex justify-content-between align-items-center" 
-              type="button" 
-              data-bs-toggle="dropdown" 
+            <button
+              class="btn w-100 text-start dropdown-toggle d-flex justify-content-between align-items-center"
+              type="button"
+              data-bs-toggle="dropdown"
               data-bs-auto-close="outside"
-              style="background-color: var(--body-bg); color: var(--text-darker); border-radius: 10px; border: none;"
+              style="
+                background-color: var(--body-bg);
+                color: var(--text-darker);
+                border-radius: 10px;
+                border: none;
+              "
             >
-              <span>{{ selectedGenresCount > 0 ? `Жанры (${selectedGenresCount})` : 'Выбрать жанры' }}</span>
+              <span>{{
+                selectedGenresCount > 0 ? `Жанры (${selectedGenresCount})` : 'Выбрать жанры'
+              }}</span>
             </button>
-            <div class="dropdown-menu p-3 shadow-lg border-0 mt-2" style="width: 280px; max-height: 350px; overflow-y: auto; border-radius: 12px;">
-              <div v-for="genre in genres" :key="genre.genre_id" class="form-check mb-2 custom-check">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
-                  :id="'genre-' + genre.genre_id" 
-                  :value="genre.genre_id" 
+            <div
+              class="dropdown-menu p-3 shadow-lg border-0 mt-2"
+              style="width: 280px; max-height: 350px; overflow-y: auto; border-radius: 12px"
+            >
+              <div
+                v-for="genre in genres"
+                :key="genre.genre_id"
+                class="form-check mb-2 custom-check"
+              >
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  :id="'genre-' + genre.genre_id"
+                  :value="genre.genre_id"
                   v-model="params.genre_ids"
-                >
+                />
                 <label class="form-check-label w-100" :for="'genre-' + genre.genre_id">
                   {{ genre.genre_name }}
                 </label>
               </div>
-              <div v-if="genres.length === 0" class="text-center py-2 text-muted small">Жанры не найдены</div>
+              <div v-if="genres.length === 0" class="text-center py-2 text-muted small">
+                Жанры не найдены
+              </div>
             </div>
           </div>
         </div>
 
         <div class="col-12 col-md-4 col-lg-3">
           <div class="dropdown w-100">
-            <button 
-              class="btn w-100 text-start dropdown-toggle d-flex justify-content-between align-items-center" 
-              type="button" 
-              data-bs-toggle="dropdown" 
+            <button
+              class="btn w-100 text-start dropdown-toggle d-flex justify-content-between align-items-center"
+              type="button"
+              data-bs-toggle="dropdown"
               data-bs-auto-close="outside"
-              style="background-color: var(--body-bg); color: var(--text-darker); border-radius: 10px; border: none;"
+              style="
+                background-color: var(--body-bg);
+                color: var(--text-darker);
+                border-radius: 10px;
+                border: none;
+              "
             >
-              <span>{{ selectedTagsCount > 0 ? `Теги (${selectedTagsCount})` : 'Выбрать теги' }}</span>
+              <span>{{
+                selectedTagsCount > 0 ? `Теги (${selectedTagsCount})` : 'Выбрать теги'
+              }}</span>
             </button>
-            <div class="dropdown-menu p-3 shadow-lg border-0 mt-2" style="width: 280px; max-height: 350px; overflow-y: auto; border-radius: 12px;">
+            <div
+              class="dropdown-menu p-3 shadow-lg border-0 mt-2"
+              style="width: 280px; max-height: 350px; overflow-y: auto; border-radius: 12px"
+            >
               <div v-for="tag in tags" :key="tag.tag_id" class="form-check mb-2 custom-check">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
-                  :id="'tag-' + tag.tag_id" 
-                  :value="tag.tag_id" 
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  :id="'tag-' + tag.tag_id"
+                  :value="tag.tag_id"
                   v-model="params.tag_ids"
-                >
+                />
                 <label class="form-check-label w-100" :for="'tag-' + tag.tag_id">
                   {{ tag.tag_name }}
                 </label>
               </div>
-              <div v-if="tags.length === 0" class="text-center py-2 text-muted small">Теги не найдены</div>
+              <div v-if="tags.length === 0" class="text-center py-2 text-muted small">
+                Теги не найдены
+              </div>
             </div>
           </div>
         </div>
 
         <div class="col-12 col-md-4 col-lg-2">
-          <button 
-            @click="resetFilters" 
-            class="btn w-100 fw-bold" 
-            style="background-color: var(--sidebar-bg); color: var(--sidebar-text-light); border-radius: 10px;"
+          <button
+            @click="resetFilters"
+            class="btn w-100 fw-bold"
+            style="
+              background-color: var(--sidebar-bg);
+              color: var(--sidebar-text-light);
+              border-radius: 10px;
+            "
           >
             Сбросить
           </button>
@@ -257,47 +300,69 @@ onUnmounted(() => {
     </div>
 
     <div v-if="loading" class="d-flex justify-content-center py-5">
-      <div class="spinner-grow" style="color: var(--sidebar-primary);" role="status"></div>
+      <div class="spinner-grow" style="color: var(--sidebar-primary)" role="status"></div>
     </div>
 
     <div v-else>
       <div class="row g-4 mb-5">
         <div v-for="movie in movies" :key="movie.content_id" class="col-md-6 col-lg-4 col-xl-3">
-          <div class="card h-100 border-0 shadow-sm movie-card" style="background-color: var(--card-bg);">
+          <div
+            class="card h-100 border-0 shadow-sm movie-card"
+            style="background-color: var(--card-bg)"
+          >
             <div class="card-body d-flex flex-column p-4">
               <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="badge px-2 py-1" style="background-color: var(--warning-color); color: var(--text-darker); font-size: 0.75rem;">
+                <span
+                  class="badge px-2 py-1"
+                  style="
+                    background-color: var(--warning-color);
+                    color: var(--text-darker);
+                    font-size: 0.75rem;
+                  "
+                >
                   {{ movie.content_type }}
                 </span>
                 <span class="small text-muted fw-bold">{{ movie.content_duration }}</span>
               </div>
-              
-              <h5 class="card-title mb-1 fw-bold fs-5" style="color: var(--text-darker);">{{ movie.content_name }}</h5>
-              
+
+              <h5 class="card-title mb-1 fw-bold fs-5" style="color: var(--text-darker)">
+                {{ movie.content_name }}
+              </h5>
+
               <div class="mb-3">
-                <p class="small mb-0" style="color: var(--sidebar-primary); font-weight: 600;">
-                  {{ movie.genres.map(g => g.genre_name).join(', ') || 'Без жанра' }}
+                <p class="small mb-0" style="color: var(--sidebar-primary); font-weight: 600">
+                  {{ movie.genres.map((g) => g.genre_name).join(', ') || 'Без жанра' }}
                 </p>
               </div>
 
               <div class="mb-3 d-flex flex-wrap gap-1">
-                <span v-for="tag in movie.tags" :key="tag.tag_id" class="text-muted" style="font-size: 0.8rem;">
+                <span
+                  v-for="tag in movie.tags"
+                  :key="tag.tag_id"
+                  class="text-muted"
+                  style="font-size: 0.8rem"
+                >
                   #{{ tag.tag_name }}
                 </span>
               </div>
 
-              <p class="small text-truncate-custom flex-grow-1" style="color: var(--text-muted); line-height: 1.5; font-size: 0.9rem;">
+              <p
+                class="small text-truncate-custom flex-grow-1"
+                style="color: var(--text-muted); line-height: 1.5; font-size: 0.9rem"
+              >
                 {{ movie.content_discription || 'Нет описания для данного контента.' }}
               </p>
-              
+
               <div class="mt-auto pt-3 border-top">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                  <small class="text-muted">Премьера: {{ new Date(movie.content_publish_date).getFullYear() }}</small>
+                  <small class="text-muted"
+                    >Премьера: {{ new Date(movie.content_publish_date).getFullYear() }}</small
+                  >
                 </div>
-                <button 
+                <button
                   @click="openPlayer(movie)"
-                  class="btn w-100 py-2 fw-bold action-btn" 
-                  style="background-color: var(--sidebar-primary); color: #fff; border-radius: 8px;"
+                  class="btn w-100 py-2 fw-bold action-btn"
+                  style="background-color: var(--sidebar-primary); color: #fff; border-radius: 8px"
                 >
                   Смотреть
                 </button>
@@ -308,18 +373,18 @@ onUnmounted(() => {
 
         <div v-if="movies.length === 0" class="col-12 text-center py-5">
           <div class="p-5">
-            <h4 style="color: var(--text-darker);">Контент не найден</h4>
+            <h4 style="color: var(--text-darker)">Контент не найден</h4>
             <p class="text-muted">Попробуйте изменить фильтры или поисковый запрос.</p>
           </div>
         </div>
       </div>
 
       <div class="d-flex justify-content-center pb-5" v-if="totalPagesCount > 1">
-        <Pagination 
-          :current-page="params.page" 
-          :pages="pagesArray" 
-          :total="total" 
-          @update:page="handlePageChange" 
+        <Pagination
+          :current-page="params.page"
+          :pages="pagesArray"
+          :total="total"
+          @update:page="handlePageChange"
         />
       </div>
     </div>
@@ -329,19 +394,35 @@ onUnmounted(() => {
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div>
             <h4 class="mb-0 text-white fw-bold">{{ selectedMovie.content_name }}</h4>
-            <small class="text-white-50">{{ selectedMovie.content_type }} • {{ selectedMovie.content_duration }}</small>
+            <small class="text-white-50"
+              >{{ selectedMovie.content_type }} • {{ selectedMovie.content_duration }}</small
+            >
           </div>
-          <button @click="closePlayer" class="btn btn-link text-white text-decoration-none fs-4 p-0">
+          <button
+            @click="closePlayer"
+            class="btn btn-link text-white text-decoration-none fs-4 p-0"
+          >
             &times;
           </button>
         </div>
-        
-        <div class="video-placeholder rounded-3 mb-4 d-flex align-items-center justify-content-center">
+
+        <div
+          class="video-placeholder rounded-3 mb-4 d-flex align-items-center justify-content-center"
+        >
           <div v-if="playerLoading" class="spinner-border text-light" role="status"></div>
           <div v-else class="text-center text-white-50">
-            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-play-circle mb-2" viewBox="0 0 16 16">
-              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
-              <path d="M6.271 5.055a.5.5 0 0 1 .52.038l3.5 2.5a.5.5 0 0 1 0 .814l-3.5 2.5A.5.5 0 0 1 6 10.5v-5a.5.5 0 0 1 .271-.445"/>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="64"
+              height="64"
+              fill="currentColor"
+              class="bi bi-play-circle mb-2"
+              viewBox="0 0 16 16"
+            >
+              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+              <path
+                d="M6.271 5.055a.5.5 0 0 1 .52.038l3.5 2.5a.5.5 0 0 1 0 .814l-3.5 2.5A.5.5 0 0 1 6 10.5v-5a.5.5 0 0 1 .271-.445"
+              />
             </svg>
             <p class="mb-0">Имитация видеоплеера</p>
           </div>
@@ -349,15 +430,17 @@ onUnmounted(() => {
 
         <div class="d-flex align-items-center gap-3">
           <span class="text-white-50 small">0%</span>
-          <input 
-            type="range" 
-            class="form-range flex-grow-1 custom-range" 
-            min="0" 
-            max="100" 
+          <input
+            type="range"
+            class="form-range flex-grow-1 custom-range"
+            min="0"
+            max="100"
             v-model="currentProgress"
             :disabled="playerLoading"
+          />
+          <span class="text-white fw-bold" style="min-width: 45px; text-align: right"
+            >{{ currentProgress }}%</span
           >
-          <span class="text-white fw-bold" style="min-width: 45px; text-align: right;">{{ currentProgress }}%</span>
         </div>
       </div>
     </div>
@@ -365,13 +448,15 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.movie-card { 
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease; 
+.movie-card {
+  transition:
+    transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    box-shadow 0.3s ease;
   border-radius: 20px !important;
 }
-.movie-card:hover { 
-  transform: translateY(-8px); 
-  box-shadow: 0 1rem 3rem rgba(0,0,0,.12) !important;
+.movie-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.12) !important;
 }
 .action-btn {
   transition: all 0.2s ease;
@@ -396,7 +481,7 @@ onUnmounted(() => {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   line-clamp: 3;
-  -webkit-box-orient: vertical;  
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 .dropdown-toggle::after {

@@ -2,7 +2,12 @@
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { ApiService } from '../services/api'
 import { Config } from '../config'
-import type { ISubscription, ISubscribeType, ISubscriptionChangeRequest, IUser } from '../services/api'
+import type {
+  ISubscription,
+  ISubscribeType,
+  ISubscriptionChangeRequest,
+  IUser
+} from '../services/api'
 import { Utils } from '../utils'
 import { useDataTable } from '../composables/useDataTable'
 import DataTable from '../components/DataTable.vue'
@@ -28,7 +33,12 @@ const selectedDuration = ref<number | null>(null)
 
 const { items, total, params, pages, load, handleSort } = useDataTable(
   (p) => ApiService.getSubscriptions(p),
-  { sort: 'subscribe_start', order: 'desc', show_expired: false, limit: Config.pagination.itemsPerPage }
+  {
+    sort: 'subscribe_start',
+    order: 'desc',
+    show_expired: false,
+    limit: Config.pagination.itemsPerPage
+  }
 )
 
 const changeForm = reactive<ISubscriptionChangeRequest>({
@@ -38,19 +48,20 @@ const changeForm = reactive<ISubscriptionChangeRequest>({
 })
 
 const availableTiers = computed(() => {
-  const names = subTypes.value.map(t => t.subscribe_type_name)
+  const names = subTypes.value.map((t) => t.subscribe_type_name)
   return [...new Set(names)]
 })
 
 const availablePeriods = computed(() => {
   if (!selectedTierName.value) return []
-  return subTypes.value.filter(t => t.subscribe_type_name === selectedTierName.value)
+  return subTypes.value.filter((t) => t.subscribe_type_name === selectedTierName.value)
 })
 
 const selectedFullType = computed(() => {
-  return subTypes.value.find(t => 
-    t.subscribe_type_name === selectedTierName.value && 
-    t.subscribe_type_duration === selectedDuration.value
+  return subTypes.value.find(
+    (t) =>
+      t.subscribe_type_name === selectedTierName.value &&
+      t.subscribe_type_duration === selectedDuration.value
   )
 })
 
@@ -69,7 +80,7 @@ watch(selectedFullType, (newType) => {
 
 const openModal = async (isCreate: boolean, sub: ISubscription | null = null) => {
   isCreating.value = isCreate
-  
+
   if (isCreate) {
     try {
       const res = await ApiService.getFilteredUsers({ has_active: false })
@@ -132,7 +143,7 @@ const cancelSub = async (sub: ISubscription) => {
 }
 
 const getUserDisplayName = (id: number) => {
-  const user = usersList.value.find(u => u.user_id === id)
+  const user = usersList.value.find((u) => u.user_id === id)
   return user ? `${user.user_name} (${user.user_email})` : `ID: ${id}`
 }
 
@@ -153,7 +164,7 @@ onMounted(async () => {
     ])
     subTypes.value = typesRes
     usersList.value = usersRes.users || []
-  } catch (e) {}
+  } catch {}
 })
 </script>
 
@@ -170,40 +181,74 @@ onMounted(async () => {
       <div class="card-header bg-white p-3">
         <div class="d-flex align-items-center justify-content-between">
           <div class="d-flex align-items-center gap-3">
-            <input v-model="params.search" type="text" class="form-control" style="width: 250px" placeholder="Поиск...">
+            <input
+              v-model="params.search"
+              type="text"
+              class="form-control"
+              style="width: 250px"
+              placeholder="Поиск..."
+            />
             <div class="form-check form-switch mb-0">
-              <input class="form-check-input" type="checkbox" id="expiredSwitch" v-model="params.show_expired">
-              <label class="form-check-label small text-muted" for="expiredSwitch">Показать истёкшие</label>
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="expiredSwitch"
+                v-model="params.show_expired"
+              />
+              <label class="form-check-label small text-muted" for="expiredSwitch"
+                >Показать истёкшие</label
+              >
             </div>
           </div>
         </div>
       </div>
       <div class="card-body p-0">
-        <DataTable 
-          :columns="columns" 
-          :items="items" 
-          :has-actions="true" 
+        <DataTable
+          :columns="columns"
+          :items="items"
+          :has-actions="true"
           :current-page="params.page"
           :page-size="params.limit"
           :sort-config="{ key: params.sort, order: params.order }"
           @sort="handleSort"
         >
-          <template #cell-user_name="{ item }">{{ item.user?.user_name || `ID: ${item.user_id}` }}</template>
-          <template #cell-subscribe_type_name="{ item }">{{ item.subscribe_type?.subscribe_type_name || '—' }}</template>
-          <template #cell-subscribe_start="{ item }">{{ Utils.formatDate(item.subscribe_start) }}</template>
-          <template #cell-subscribe_finish="{ item }">{{ Utils.formatDate(item.subscribe_finish) }}</template>
+          <template #cell-user_name="{ item }">{{
+            item.user?.user_name || `ID: ${item.user_id}`
+          }}</template>
+          <template #cell-subscribe_type_name="{ item }">{{
+            item.subscribe_type?.subscribe_type_name || '—'
+          }}</template>
+          <template #cell-subscribe_start="{ item }">{{
+            Utils.formatDate(item.subscribe_start)
+          }}</template>
+          <template #cell-subscribe_finish="{ item }">{{
+            Utils.formatDate(item.subscribe_finish)
+          }}</template>
           <template #cell-status="{ item }">
-            <span class="badge" :class="item.status === 'Активна' ? 'bg-success-subtle text-success' : 'bg-light text-muted'">
+            <span
+              class="badge"
+              :class="
+                item.status === 'Активна' ? 'bg-success-subtle text-success' : 'bg-light text-muted'
+              "
+            >
               {{ item.status }}
             </span>
           </template>
-          
+
           <template #actions="{ item }">
             <template v-if="item.status === 'Активна'">
-              <button class="btn btn-sm btn-outline-primary me-2" @click="openModal(false, item)" title="Сменить тариф">
+              <button
+                class="btn btn-sm btn-outline-primary me-2"
+                @click="openModal(false, item)"
+                title="Сменить тариф"
+              >
                 <i class="bi bi-arrow-repeat"></i>
               </button>
-              <button class="btn btn-sm btn-outline-danger" @click="cancelSub(item)" title="Аннулировать">
+              <button
+                class="btn btn-sm btn-outline-danger"
+                @click="cancelSub(item)"
+                title="Аннулировать"
+              >
                 <i class="bi bi-slash-circle"></i>
               </button>
             </template>
@@ -212,11 +257,25 @@ onMounted(async () => {
         </DataTable>
       </div>
       <div class="card-footer bg-white border-top-0">
-        <Pagination :current-page="params.page" :pages="pages" :total="total" @update:page="(p) => { params.page = p; load(); }" />
+        <Pagination
+          :current-page="params.page"
+          :pages="pages"
+          :total="total"
+          @update:page="
+            (p) => {
+              params.page = p
+              load()
+            }
+          "
+        />
       </div>
     </div>
 
-    <Modal :show="showModal" :title="isCreating ? 'Новая подписка' : 'Смена тарифа'" @close="closeModal">
+    <Modal
+      :show="showModal"
+      :title="isCreating ? 'Новая подписка' : 'Смена тарифа'"
+      @close="closeModal"
+    >
       <form @submit.prevent="submitForm" id="subActionForm">
         <div v-if="isCreating" class="mb-3">
           <label class="form-label small fw-bold">Пользователь</label>
@@ -226,36 +285,59 @@ onMounted(async () => {
               {{ u.user_name }} ({{ u.user_email || 'Email не указан' }})
             </option>
           </select>
-          <div v-if="availableUsers && availableUsers.length === 0" class="form-text text-danger">Нет доступных пользователей без активных подписок.</div>
+          <div v-if="availableUsers && availableUsers.length === 0" class="form-text text-danger">
+            Нет доступных пользователей без активных подписок.
+          </div>
         </div>
         <div v-else class="mb-3">
           <label class="form-label small fw-bold">Пользователь</label>
-          <input :value="getUserDisplayName(changeForm.user_id)" class="form-control" disabled>
+          <input :value="getUserDisplayName(changeForm.user_id)" class="form-control" disabled />
         </div>
 
         <div class="row">
           <div class="col-md-6 mb-3">
             <label class="form-label small fw-bold">Вид подписки</label>
-            <select v-model="selectedTierName" class="form-select" required @change="selectedDuration = null">
+            <select
+              v-model="selectedTierName"
+              class="form-select"
+              required
+              @change="selectedDuration = null"
+            >
               <option value="" disabled>Выберите вид...</option>
               <option v-for="name in availableTiers" :key="name" :value="name">{{ name }}</option>
             </select>
           </div>
           <div class="col-md-6 mb-3">
             <label class="form-label small fw-bold">Период</label>
-            <select v-model="selectedDuration" class="form-select" :disabled="!selectedTierName" required>
+            <select
+              v-model="selectedDuration"
+              class="form-select"
+              :disabled="!selectedTierName"
+              required
+            >
               <option :value="null" disabled>Выберите срок...</option>
-              <option v-for="p in availablePeriods" :key="p.subscribe_type_id" :value="p.subscribe_type_duration">
+              <option
+                v-for="p in availablePeriods"
+                :key="p.subscribe_type_id"
+                :value="p.subscribe_type_duration"
+              >
                 {{ formatDuration(p.subscribe_type_duration) }}
               </option>
             </select>
           </div>
         </div>
 
-        <div v-if="selectedFullType" class="alert alert-info py-2 px-3 border-0 shadow-sm bg-primary-subtle text-primary-emphasis mb-3">
+        <div
+          v-if="selectedFullType"
+          class="alert alert-info py-2 px-3 border-0 shadow-sm bg-primary-subtle text-primary-emphasis mb-3"
+        >
           <div class="d-flex justify-content-between align-items-center">
-            <span>Стоимость: <strong>{{ selectedFullType.subscribe_type_cost }} ₽</strong></span>
-            <span class="small">До: <strong>{{ calculatedEndDate }}</strong></span>
+            <span
+              >Стоимость: <strong>{{ selectedFullType.subscribe_type_cost }} ₽</strong></span
+            >
+            <span class="small"
+              >До: <strong>{{ calculatedEndDate }}</strong></span
+            >
           </div>
         </div>
 
@@ -269,8 +351,15 @@ onMounted(async () => {
         </div>
       </form>
       <template #footer>
-          <button type="button" class="btn btn-light" @click="closeModal">Отмена</button>
-          <button type="submit" form="subActionForm" class="btn btn-primary px-4" :disabled="!selectedFullType || changeForm.user_id === 0">Подтвердить</button>
+        <button type="button" class="btn btn-light" @click="closeModal">Отмена</button>
+        <button
+          type="submit"
+          form="subActionForm"
+          class="btn btn-primary px-4"
+          :disabled="!selectedFullType || changeForm.user_id === 0"
+        >
+          Подтвердить
+        </button>
       </template>
     </Modal>
   </div>

@@ -11,7 +11,10 @@ export interface DataTableParams {
   [key: string]: any
 }
 
-export function useDataTable(fetchFn: (params: any) => Promise<any>, initialParams: Partial<DataTableParams> = {}) {
+export function useDataTable(
+  fetchFn: (params: any) => Promise<any>,
+  initialParams: Partial<DataTableParams> = {}
+) {
   const items = ref<any[]>([])
   const total = ref(0)
   const loading = ref(false)
@@ -39,9 +42,8 @@ export function useDataTable(fetchFn: (params: any) => Promise<any>, initialPara
         total.value = response.total || 0
       }
     } catch (e: any) {
-      error.value = e.message === 'Forbidden' 
-        ? 'Доступ запрещен' 
-        : (e.message || 'Ошибка загрузки данных')
+      error.value =
+        e.message === 'Forbidden' ? 'Доступ запрещен' : e.message || 'Ошибка загрузки данных'
       items.value = []
       total.value = 0
     } finally {
@@ -51,7 +53,7 @@ export function useDataTable(fetchFn: (params: any) => Promise<any>, initialPara
 
   watch(
     () => {
-      const { page, limit, ...filters } = params
+      const { page: _page, limit: _limit, ...filters } = params
       return JSON.stringify(filters)
     },
     () => {

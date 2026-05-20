@@ -42,7 +42,7 @@ const validateTime = (field: 'h' | 'm' | 's') => {
 }
 
 const { items, total, params, pages, load, handleSort } = useDataTable(
-  (p) => ApiService.getContent(p), 
+  (p) => ApiService.getContent(p),
   { sort: 'content_id', order: 'desc', limit: Config.pagination.itemsPerPage }
 )
 
@@ -57,18 +57,18 @@ const contentForm = reactive({
 })
 
 const genreColorMap: Record<string, string> = {
-  'Драма': 'var(--genre-drama)',
-  'Комедия': 'var(--genre-comedy)',
-  'Боевик': 'var(--genre-action)',
-  'Триллер': 'var(--genre-thriller)',
-  'Ужасы': 'var(--genre-horror)',
-  'Мелодрама': 'var(--genre-romance)',
-  'Фэнтези': 'var(--genre-fantasy)',
-  'Фантастика': 'var(--genre-sci-fi)',
-  'Документальный': 'var(--genre-documentary)',
-  'Мультфильм': 'var(--genre-animation)',
-  'Приключения': 'var(--genre-adventure)',
-  'Детектив': 'var(--genre-mystery)'
+  Драма: 'var(--genre-drama)',
+  Комедия: 'var(--genre-comedy)',
+  Боевик: 'var(--genre-action)',
+  Триллер: 'var(--genre-thriller)',
+  Ужасы: 'var(--genre-horror)',
+  Мелодрама: 'var(--genre-romance)',
+  Фэнтези: 'var(--genre-fantasy)',
+  Фантастика: 'var(--genre-sci-fi)',
+  Документальный: 'var(--genre-documentary)',
+  Мультфильм: 'var(--genre-animation)',
+  Приключения: 'var(--genre-adventure)',
+  Детектив: 'var(--genre-mystery)'
 }
 
 const getGenreStyle = (name: string) => {
@@ -84,15 +84,17 @@ const openModal = (item: IContent | null = null) => {
     durationInput.h = h ?? 0
     durationInput.m = m ?? 0
     durationInput.s = s ?? 0
-    
+
     Object.assign(contentForm, {
       content_name: item.content_name,
       content_type: item.content_type,
-      content_publish_date: item.content_publish_date ? item.content_publish_date.split('T')[0] : '',
+      content_publish_date: item.content_publish_date
+        ? item.content_publish_date.split('T')[0]
+        : '',
       content_discription: item.content_discription || '',
-      genre_ids: item.genres?.map(g => g.genre_id) || [],
-      tag_ids: item.tags?.map(t => t.tag_id) || [],
-      copyright_holder_ids: item.copyright_holders?.map(h => h.copyright_holder_id) || []
+      genre_ids: item.genres?.map((g) => g.genre_id) || [],
+      tag_ids: item.tags?.map((t) => t.tag_id) || [],
+      copyright_holder_ids: item.copyright_holders?.map((h) => h.copyright_holder_id) || []
     })
   } else {
     currentId.value = null
@@ -166,7 +168,7 @@ onMounted(async () => {
     genresList.value = g
     tagsList.value = t
     holdersList.value = h
-  } catch (e) {}
+  } catch {}
 })
 </script>
 
@@ -181,12 +183,18 @@ onMounted(async () => {
 
     <div class="card shadow-sm border-0">
       <div class="card-header bg-white p-3">
-        <input v-model="params.search" @input="load" type="text" class="form-control w-25" placeholder="Поиск...">
+        <input
+          v-model="params.search"
+          @input="load"
+          type="text"
+          class="form-control w-25"
+          placeholder="Поиск..."
+        />
       </div>
       <div class="card-body p-0">
-        <DataTable 
-          :columns="columns" 
-          :items="items" 
+        <DataTable
+          :columns="columns"
+          :items="items"
           :has-actions="true"
           :current-page="params.page"
           :page-size="params.limit"
@@ -197,13 +205,24 @@ onMounted(async () => {
         >
           <template #cell-content_name="{ item }">
             <div class="cursor-help" :title="item.content_name">
-              {{ item.content_name.length > 17 ? item.content_name.slice(0, 17) + '...' : item.content_name }}
+              {{
+                item.content_name.length > 17
+                  ? item.content_name.slice(0, 17) + '...'
+                  : item.content_name
+              }}
             </div>
           </template>
 
           <template #cell-content_type="{ item }">
-            <span class="badge rounded-pill bg-secondary text-white opacity-75 small" :title="item.content_type">
-              {{ item.content_type.length > 6 ? item.content_type.slice(0, 5) + '...' : item.content_type }}
+            <span
+              class="badge rounded-pill bg-secondary text-white opacity-75 small"
+              :title="item.content_type"
+            >
+              {{
+                item.content_type.length > 6
+                  ? item.content_type.slice(0, 5) + '...'
+                  : item.content_type
+              }}
             </span>
           </template>
 
@@ -213,28 +232,42 @@ onMounted(async () => {
                 {{ item.genres[0].genre_name }}
               </span>
               <div v-if="item.genres.length > 1" class="dropdown d-inline ms-1">
-                <button class="btn btn-link btn-sm p-0 text-decoration-none small fw-bold text-dark" type="button" data-bs-toggle="dropdown">
+                <button
+                  class="btn btn-link btn-sm p-0 text-decoration-none small fw-bold text-dark"
+                  type="button"
+                  data-bs-toggle="dropdown"
+                >
                   +{{ item.genres.length - 1 }}
                 </button>
                 <ul class="dropdown-menu shadow-sm border-0 p-2">
                   <li v-for="g in item.genres.slice(1)" :key="g.genre_id" class="py-1">
-                    <span class="badge w-100" :style="getGenreStyle(g.genre_name)">{{ g.genre_name }}</span>
+                    <span class="badge w-100" :style="getGenreStyle(g.genre_name)">{{
+                      g.genre_name
+                    }}</span>
                   </li>
                 </ul>
               </div>
             </div>
             <span v-else class="text-muted small">---</span>
           </template>
-          
+
           <template #cell-tags="{ item }">
             <div class="d-flex align-items-center" v-if="item.tags?.length">
               <span class="text-muted small me-1">#{{ item.tags[0].tag_name }}</span>
               <div v-if="item.tags.length > 1" class="dropdown d-inline">
-                <button class="btn btn-link btn-sm p-0 text-decoration-none small fw-bold text-dark" type="button" data-bs-toggle="dropdown">
+                <button
+                  class="btn btn-link btn-sm p-0 text-decoration-none small fw-bold text-dark"
+                  type="button"
+                  data-bs-toggle="dropdown"
+                >
                   +{{ item.tags.length - 1 }}
                 </button>
                 <ul class="dropdown-menu shadow-sm border-0 p-2">
-                  <li v-for="t in item.tags.slice(1)" :key="t.tag_id" class="small text-muted py-1 px-2">
+                  <li
+                    v-for="t in item.tags.slice(1)"
+                    :key="t.tag_id"
+                    class="small text-muted py-1 px-2"
+                  >
                     #{{ t.tag_name }}
                   </li>
                 </ul>
@@ -245,17 +278,31 @@ onMounted(async () => {
 
           <template #cell-copyright_holders="{ item }">
             <div class="d-flex align-items-center" v-if="item.copyright_holders?.length">
-              <span class="small text-truncate cursor-help" 
-                    style="max-width: 130px;" 
-                    :title="item.copyright_holders.map((h: ICopyrightHolder) => h.copyright_holder_name).join(', ')">
+              <span
+                class="small text-truncate cursor-help"
+                style="max-width: 130px"
+                :title="
+                  item.copyright_holders
+                    .map((h: ICopyrightHolder) => h.copyright_holder_name)
+                    .join(', ')
+                "
+              >
                 {{ item.copyright_holders[0].copyright_holder_name }}
               </span>
               <div v-if="item.copyright_holders.length > 1" class="dropdown d-inline ms-1">
-                <button class="btn btn-link btn-sm p-0 text-decoration-none small fw-bold text-dark" type="button" data-bs-toggle="dropdown">
+                <button
+                  class="btn btn-link btn-sm p-0 text-decoration-none small fw-bold text-dark"
+                  type="button"
+                  data-bs-toggle="dropdown"
+                >
                   +{{ item.copyright_holders.length - 1 }}
                 </button>
-                <ul class="dropdown-menu shadow-sm border-0 p-2" style="min-width: 200px;">
-                  <li v-for="h in item.copyright_holders.slice(1)" :key="h.copyright_holder_id" class="small py-1 px-2 border-bottom last-child-0">
+                <ul class="dropdown-menu shadow-sm border-0 p-2" style="min-width: 200px">
+                  <li
+                    v-for="h in item.copyright_holders.slice(1)"
+                    :key="h.copyright_holder_id"
+                    class="small py-1 px-2 border-bottom last-child-0"
+                  >
                     {{ h.copyright_holder_name }}
                   </li>
                 </ul>
@@ -273,15 +320,29 @@ onMounted(async () => {
         </DataTable>
       </div>
       <div class="card-footer bg-white border-top-0">
-        <Pagination :current-page="params.page" :pages="pages" :total="total" @update:page="(p) => { params.page = p; load(); }" />
+        <Pagination
+          :current-page="params.page"
+          :pages="pages"
+          :total="total"
+          @update:page="
+            (p) => {
+              params.page = p
+              load()
+            }
+          "
+        />
       </div>
     </div>
 
-    <Modal :show="showModal" :title="isEditing ? 'Редактировать контент' : 'Новый контент'" @close="closeModal">
+    <Modal
+      :show="showModal"
+      :title="isEditing ? 'Редактировать контент' : 'Новый контент'"
+      @close="closeModal"
+    >
       <form @submit.prevent="saveContent" id="contentForm" class="row g-3">
         <div class="col-12">
           <label class="form-label small fw-bold">Название</label>
-          <input v-model="contentForm.content_name" class="form-control" required>
+          <input v-model="contentForm.content_name" class="form-control" required />
         </div>
         <div class="col-md-6">
           <label class="form-label small fw-bold">Тип</label>
@@ -296,8 +357,14 @@ onMounted(async () => {
           <label class="form-label small fw-bold">Жанры</label>
           <div class="border rounded p-2 bg-white form-control checkbox-list-container">
             <div class="form-check mb-1" v-for="g in genresList" :key="g.genre_id">
-              <input class="form-check-input" type="checkbox" :value="g.genre_id" :id="'genre-'+g.genre_id" v-model="contentForm.genre_ids">
-              <label class="form-check-label small" :for="'genre-'+g.genre_id">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                :value="g.genre_id"
+                :id="'genre-' + g.genre_id"
+                v-model="contentForm.genre_ids"
+              />
+              <label class="form-check-label small" :for="'genre-' + g.genre_id">
                 {{ g.genre_name }}
               </label>
             </div>
@@ -305,21 +372,44 @@ onMounted(async () => {
         </div>
         <div class="col-md-6">
           <label class="form-label small fw-bold">Дата выпуска</label>
-          <input v-model="contentForm.content_publish_date" type="date" class="form-control" required>
+          <input
+            v-model="contentForm.content_publish_date"
+            type="date"
+            class="form-control"
+            required
+          />
         </div>
         <div class="col-md-6">
           <label class="form-label small fw-bold">Длительность</label>
           <div class="d-flex align-items-center gap-2">
             <div class="flex-grow-1">
-              <input type="number" v-model.number="durationInput.h" @change="validateTime('h')" class="form-control form-control-sm text-center" placeholder="Ч">
+              <input
+                type="number"
+                v-model.number="durationInput.h"
+                @change="validateTime('h')"
+                class="form-control form-control-sm text-center"
+                placeholder="Ч"
+              />
               <div class="text-center x-small text-muted">час</div>
             </div>
             <div class="flex-grow-1">
-              <input type="number" v-model.number="durationInput.m" @change="validateTime('m')" class="form-control form-control-sm text-center" placeholder="М">
+              <input
+                type="number"
+                v-model.number="durationInput.m"
+                @change="validateTime('m')"
+                class="form-control form-control-sm text-center"
+                placeholder="М"
+              />
               <div class="text-center x-small text-muted">мин</div>
             </div>
             <div class="flex-grow-1">
-              <input type="number" v-model.number="durationInput.s" @change="validateTime('s')" class="form-control form-control-sm text-center" placeholder="С">
+              <input
+                type="number"
+                v-model.number="durationInput.s"
+                @change="validateTime('s')"
+                class="form-control form-control-sm text-center"
+                placeholder="С"
+              />
               <div class="text-center x-small text-muted">сек</div>
             </div>
           </div>
@@ -328,8 +418,14 @@ onMounted(async () => {
           <label class="form-label small fw-bold">Теги</label>
           <div class="border rounded p-2 bg-white form-control checkbox-list-container">
             <div class="form-check mb-1" v-for="t in tagsList" :key="t.tag_id">
-              <input class="form-check-input" type="checkbox" :value="t.tag_id" :id="'tag-'+t.tag_id" v-model="contentForm.tag_ids">
-              <label class="form-check-label small" :for="'tag-'+t.tag_id">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                :value="t.tag_id"
+                :id="'tag-' + t.tag_id"
+                v-model="contentForm.tag_ids"
+              />
+              <label class="form-check-label small" :for="'tag-' + t.tag_id">
                 {{ t.tag_name }}
               </label>
             </div>
@@ -339,8 +435,14 @@ onMounted(async () => {
           <label class="form-label small fw-bold">Правообладатели</label>
           <div class="border rounded p-2 bg-white form-control checkbox-list-container">
             <div class="form-check mb-1" v-for="h in holdersList" :key="h.copyright_holder_id">
-              <input class="form-check-input" type="checkbox" :value="h.copyright_holder_id" :id="'holder-'+h.copyright_holder_id" v-model="contentForm.copyright_holder_ids">
-              <label class="form-check-label small" :for="'holder-'+h.copyright_holder_id">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                :value="h.copyright_holder_id"
+                :id="'holder-' + h.copyright_holder_id"
+                v-model="contentForm.copyright_holder_ids"
+              />
+              <label class="form-check-label small" :for="'holder-' + h.copyright_holder_id">
                 {{ h.copyright_holder_name }}
               </label>
             </div>
@@ -348,7 +450,11 @@ onMounted(async () => {
         </div>
         <div class="col-12">
           <label class="form-label small fw-bold">Описание</label>
-          <textarea v-model="contentForm.content_discription" class="form-control" rows="3"></textarea>
+          <textarea
+            v-model="contentForm.content_discription"
+            class="form-control"
+            rows="3"
+          ></textarea>
         </div>
       </form>
       <template #footer>
@@ -376,9 +482,9 @@ onMounted(async () => {
   max-height: 140px;
   overflow-y: auto;
 }
-input[type=number]::-webkit-inner-spin-button, 
-input[type=number]::-webkit-outer-spin-button { 
-  -webkit-appearance: none; 
-  margin: 0; 
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 </style>

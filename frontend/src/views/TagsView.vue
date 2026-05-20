@@ -15,7 +15,7 @@ const columns = [
 
 const isEditing = ref(false)
 const currentId = ref<number | null>(null)
-const tagForm = reactive({ 
+const tagForm = reactive({
   tag_name: '',
   content_ids: [] as number[]
 })
@@ -37,7 +37,7 @@ const { items, total, params, pages, load, handleSort } = useDataTable(
 
 const tagViewsMap = computed(() => {
   const map: Record<string, number> = {}
-  popularTags.value.forEach(t => {
+  popularTags.value.forEach((t) => {
     map[t.tag_name] = t.views_count
   })
   return map
@@ -62,10 +62,10 @@ const cloudTags = computed(() => {
 })
 
 const maxViews = computed(() => {
-  return popularTags.value.length ? Math.max(...popularTags.value.map(t => t.views_count)) : 1
+  return popularTags.value.length ? Math.max(...popularTags.value.map((t) => t.views_count)) : 1
 })
 const minViews = computed(() => {
-  return popularTags.value.length ? Math.min(...popularTags.value.map(t => t.views_count)) : 0
+  return popularTags.value.length ? Math.min(...popularTags.value.map((t) => t.views_count)) : 0
 })
 
 const loadStatsAndTags = async () => {
@@ -75,32 +75,32 @@ const loadStatsAndTags = async () => {
       ApiService.getContent({ limit: 10000 }),
       ApiService.getPopularTags(50).catch(() => [])
     ])
-    
+
     allTags.value = tags
     allContent.value = contentData.items
     popularTags.value = popular
-    
+
     const counts: Record<number, number> = {}
-    contentData.items.forEach(c => {
-      c.tags?.forEach(t => {
+    contentData.items.forEach((c) => {
+      c.tags?.forEach((t) => {
         counts[t.tag_id] = (counts[t.tag_id] || 0) + 1
       })
     })
     tagCounts.value = counts
-  } catch (e) {}
+  } catch {}
 }
 
 const getTagStyle = (tagId: number) => {
   const count = tagCounts.value[tagId] || 0
   const values = Object.values(tagCounts.value)
   const maxCount = values.length > 0 ? Math.max(...values, 1) : 1
-  
+
   const ratio = count / maxCount
   const minSize = 0.8
   const maxSize = 2.8
   const size = minSize + ratio * (maxSize - minSize)
-  const opacity = 0.5 + (ratio * 0.5)
-  
+  const opacity = 0.5 + ratio * 0.5
+
   return {
     fontSize: `${size}rem`,
     opacity: opacity,
@@ -110,12 +110,15 @@ const getTagStyle = (tagId: number) => {
 
 const getPopularTagStyle = (tagName: string) => {
   const views = tagViewsMap.value[tagName] || 0
-  const ratio = (maxViews.value === minViews.value) ? 0.5 : (views - minViews.value) / (maxViews.value - minViews.value)
+  const ratio =
+    maxViews.value === minViews.value
+      ? 0.5
+      : (views - minViews.value) / (maxViews.value - minViews.value)
   const minSize = 0.8
   const maxSize = 2.8
   const size = minSize + ratio * (maxSize - minSize)
-  const opacity = 0.5 + (ratio * 0.5)
-  
+  const opacity = 0.5 + ratio * 0.5
+
   return {
     fontSize: `${size}rem`,
     opacity: opacity,
@@ -128,8 +131,8 @@ const setEdit = (item: ITag) => {
   currentId.value = item.tag_id
   tagForm.tag_name = item.tag_name
   tagForm.content_ids = allContent.value
-    .filter(c => c.tags?.some((t: any) => t.tag_id === item.tag_id))
-    .map(c => c.content_id)
+    .filter((c) => c.tags?.some((t: any) => t.tag_id === item.tag_id))
+    .map((c) => c.content_id)
 }
 
 const resetForm = () => {
@@ -244,69 +247,87 @@ onUnmounted(() => {
 
     <div class="tags-layout d-flex align-items-stretch">
       <div class="cloud-wrapper d-flex flex-column" :style="{ width: cloudWidth + '%' }">
-        
-        <div class="card shadow-sm border-0 d-flex flex-column" :style="{ height: topCloudHeight + '%' }">
+        <div
+          class="card shadow-sm border-0 d-flex flex-column"
+          :style="{ height: topCloudHeight + '%' }"
+        >
           <div class="card-header bg-white p-3 border-bottom-0 text-center flex-shrink-0">
             <h5 class="mb-0 fw-bold">Популярность по количеству</h5>
           </div>
-          <div class="card-body d-flex flex-wrap align-items-center justify-content-center p-4 cloud-container flex-grow-1 overflow-auto">
-            <span 
-              v-for="tag in cloudTags" 
-              :key="tag.tag_id" 
+          <div
+            class="card-body d-flex flex-wrap align-items-center justify-content-center p-4 cloud-container flex-grow-1 overflow-auto"
+          >
+            <span
+              v-for="tag in cloudTags"
+              :key="tag.tag_id"
               class="tag-cloud-item"
               :style="getTagStyle(tag.tag_id)"
             >
               #{{ tag.tag_name }}
             </span>
-            <div v-if="allTags.length === 0" class="text-muted small">
-              Тегов пока нет
-            </div>
+            <div v-if="allTags.length === 0" class="text-muted small">Тегов пока нет</div>
           </div>
         </div>
 
         <div class="resizer-h" @mousedown="startResizingVertical"></div>
 
-        <div class="card shadow-sm border-0 d-flex flex-column" :style="{ height: (100 - topCloudHeight) + '%' }">
+        <div
+          class="card shadow-sm border-0 d-flex flex-column"
+          :style="{ height: 100 - topCloudHeight + '%' }"
+        >
           <div class="card-header bg-white p-3 border-bottom-0 text-center flex-shrink-0">
             <h5 class="mb-0 fw-bold">Популярность по просмотрам</h5>
           </div>
-          <div class="card-body d-flex flex-wrap align-items-center justify-content-center p-4 cloud-container flex-grow-1 overflow-auto">
-            <span 
-              v-for="tag in cloudTags" 
-              :key="'views-' + tag.tag_id" 
+          <div
+            class="card-body d-flex flex-wrap align-items-center justify-content-center p-4 cloud-container flex-grow-1 overflow-auto"
+          >
+            <span
+              v-for="tag in cloudTags"
+              :key="'views-' + tag.tag_id"
               class="tag-cloud-item popular-tag"
               :style="getPopularTagStyle(tag.tag_name)"
               :title="'Просмотры: ' + (tagViewsMap[tag.tag_name] || 0)"
             >
               #{{ tag.tag_name }}
             </span>
-            <div v-if="allTags.length === 0" class="text-muted small">
-              Нет данных по просмотрам
-            </div>
+            <div v-if="allTags.length === 0" class="text-muted small">Нет данных по просмотрам</div>
           </div>
         </div>
-
       </div>
 
       <div class="resizer" @mousedown="startResizing"></div>
 
-      <div class="right-wrapper d-flex flex-column" :style="{ width: (100 - cloudWidth) + '%' }">
+      <div class="right-wrapper d-flex flex-column" :style="{ width: 100 - cloudWidth + '%' }">
         <div class="card shadow-sm border-0 mb-3 flex-shrink-0">
           <div class="card-header bg-white py-3 border-0">
-            <h5 class="card-title mb-0 fw-bold">{{ isEditing ? 'Редактировать тег' : 'Добавить тег' }}</h5>
+            <h5 class="card-title mb-0 fw-bold">
+              {{ isEditing ? 'Редактировать тег' : 'Добавить тег' }}
+            </h5>
           </div>
           <div class="card-body py-0 pb-3">
             <form @submit.prevent="saveTag">
               <div class="mb-3">
                 <label class="form-label small fw-bold">Название тега</label>
-                <input v-model="tagForm.tag_name" type="text" class="form-control" placeholder="Напр: боевик" required>
+                <input
+                  v-model="tagForm.tag_name"
+                  type="text"
+                  class="form-control"
+                  placeholder="Напр: боевик"
+                  required
+                />
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-bold">Связанный контент</label>
                 <div class="border rounded p-2 bg-white form-control checkbox-list-container">
                   <div class="form-check mb-1" v-for="c in allContent" :key="c.content_id">
-                    <input class="form-check-input" type="checkbox" :value="c.content_id" :id="'content-'+c.content_id" v-model="tagForm.content_ids">
-                    <label class="form-check-label small" :for="'content-'+c.content_id">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      :value="c.content_id"
+                      :id="'content-' + c.content_id"
+                      v-model="tagForm.content_ids"
+                    />
+                    <label class="form-check-label small" :for="'content-' + c.content_id">
                       {{ c.content_name }}
                     </label>
                   </div>
@@ -316,7 +337,9 @@ onUnmounted(() => {
                 <button type="submit" class="btn btn-primary flex-grow-1">
                   {{ isEditing ? 'Обновить' : 'Сохранить' }}
                 </button>
-                <button v-if="isEditing" type="button" class="btn btn-light" @click="resetForm">Отмена</button>
+                <button v-if="isEditing" type="button" class="btn btn-light" @click="resetForm">
+                  Отмена
+                </button>
               </div>
             </form>
           </div>
@@ -325,15 +348,23 @@ onUnmounted(() => {
         <div class="card shadow-sm border-0 flex-grow-1 d-flex flex-column">
           <div class="card-header bg-white p-3 flex-shrink-0">
             <div class="input-group">
-              <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
-              <input v-model="params.search" @input="load" type="text" class="form-control bg-light border-start-0" placeholder="Поиск по названию...">
+              <span class="input-group-text bg-light border-end-0"
+                ><i class="bi bi-search text-muted"></i
+              ></span>
+              <input
+                v-model="params.search"
+                @input="load"
+                type="text"
+                class="form-control bg-light border-start-0"
+                placeholder="Поиск по названию..."
+              />
             </div>
           </div>
-          
+
           <div class="card-body p-0 flex-grow-1 overflow-auto">
-            <DataTable 
-              :columns="columns" 
-              :items="items" 
+            <DataTable
+              :columns="columns"
+              :items="items"
               :has-actions="true"
               :current-page="params.page"
               :page-size="params.limit"
@@ -361,11 +392,16 @@ onUnmounted(() => {
           </div>
 
           <div class="card-footer bg-white border-top-0 py-3 flex-shrink-0">
-            <Pagination 
-              :current-page="params.page" 
-              :pages="pages" 
-              :total="total" 
-              @update:page="(p) => { params.page = p; load(); }" 
+            <Pagination
+              :current-page="params.page"
+              :pages="pages"
+              :total="total"
+              @update:page="
+                (p) => {
+                  params.page = p
+                  load()
+                }
+              "
             />
           </div>
         </div>
@@ -393,7 +429,7 @@ onUnmounted(() => {
 .cloud-container {
   align-content: center;
   text-align: center;
-  background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(248,249,250,0.4) 100%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(248, 249, 250, 0.4) 100%);
 }
 
 .tag-cloud-item {
@@ -431,7 +467,7 @@ onUnmounted(() => {
 }
 
 .resizer::after {
-  content: "";
+  content: '';
   width: 3px;
   height: 40px;
   background: #dee2e6;
@@ -456,7 +492,7 @@ onUnmounted(() => {
 }
 
 .resizer-h::after {
-  content: "";
+  content: '';
   height: 3px;
   width: 40px;
   background: #dee2e6;

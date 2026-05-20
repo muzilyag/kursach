@@ -3,9 +3,9 @@ import { computed } from 'vue'
 import { Config } from '../config'
 
 const props = defineProps<{
-  currentPage: number;
-  pages: number[];
-  total: number;
+  currentPage: number
+  pages: number[]
+  total: number
 }>()
 
 defineEmits<{
@@ -55,9 +55,16 @@ const visiblePages = computed(() => {
         <li class="page-item" :class="{ disabled: currentPage === 1 }">
           <button class="page-link" @click="$emit('update:page', currentPage - 1)">«</button>
         </li>
-        <li v-for="(p, index) in visiblePages" :key="index" class="page-item" :class="{ active: p === currentPage, disabled: p === '...' }">
+        <li
+          v-for="(p, index) in visiblePages"
+          :key="index"
+          class="page-item"
+          :class="{ active: p === currentPage, disabled: p === '...' }"
+        >
           <span v-if="p === '...'" class="page-link">...</span>
-          <button v-else class="page-link" @click="$emit('update:page', p as number)">{{ p }}</button>
+          <button v-else class="page-link" @click="$emit('update:page', p as number)">
+            {{ p }}
+          </button>
         </li>
         <li class="page-item" :class="{ disabled: currentPage === pages[pages.length - 1] }">
           <button class="page-link" @click="$emit('update:page', currentPage + 1)">»</button>

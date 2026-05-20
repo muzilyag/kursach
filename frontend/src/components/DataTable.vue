@@ -4,9 +4,12 @@
       <thead class="table-light">
         <tr>
           <th style="width: 50px">#</th>
-          <th v-for="col in columns" :key="col.key" 
-              :class="{ 'sortable': col.sortable }"
-              @click="col.sortable && $emit('sort', col.key)">
+          <th
+            v-for="col in columns"
+            :key="col.key"
+            :class="{ sortable: col.sortable }"
+            @click="col.sortable && $emit('sort', col.key)"
+          >
             {{ col.label }}
             <i v-if="col.sortable" class="bi ms-1" :class="getSortIcon(col.key)"></i>
           </th>
@@ -45,30 +48,41 @@
 </template>
 
 <script setup lang="ts">
-export type SortOrder = 'asc' | 'desc';
+export type SortOrder = 'asc' | 'desc'
 
-const props = withDefaults(defineProps<{
-  columns: Array<{ key: string, label: string, sortable?: boolean }>,
-  items: any[],
-  sortConfig?: { key: string, order: SortOrder },
-  hasActions?: boolean,
-  currentPage?: number,
-  pageSize?: number
-}>(), {
-  currentPage: 1,
-  pageSize: 10,
-  hasActions: false
-})
+const props = withDefaults(
+  defineProps<{
+    columns: Array<{ key: string; label: string; sortable?: boolean }>
+    items: any[]
+    sortConfig?: { key: string; order: SortOrder }
+    hasActions?: boolean
+    currentPage?: number
+    pageSize?: number
+  }>(),
+  {
+    currentPage: 1,
+    pageSize: 10,
+    hasActions: false
+  }
+)
 
 defineEmits(['sort', 'edit', 'delete'])
 
 const getSortIcon = (key: string) => {
-  if (!props.sortConfig || props.sortConfig.key !== key) return 'bi-arrow-down-up text-muted opacity-50'
-  return props.sortConfig.order === 'asc' ? 'bi-arrow-up text-primary' : 'bi-arrow-down text-primary'
+  if (!props.sortConfig || props.sortConfig.key !== key)
+    return 'bi-arrow-down-up text-muted opacity-50'
+  return props.sortConfig.order === 'asc'
+    ? 'bi-arrow-up text-primary'
+    : 'bi-arrow-down text-primary'
 }
 </script>
 
 <style scoped>
-.sortable { cursor: pointer; user-select: none; }
-.sortable:hover { background-color: rgba(0,0,0,0.02); }
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+.sortable:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
 </style>

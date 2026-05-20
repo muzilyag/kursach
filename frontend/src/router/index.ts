@@ -8,7 +8,7 @@ const getRole = () => {
   try {
     const payload = JSON.parse(atob(token.split('.')[1] ?? ''))
     return payload.role || null
-  } catch (e) {
+  } catch {
     return null
   }
 }
