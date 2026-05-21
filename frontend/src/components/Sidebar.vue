@@ -98,6 +98,17 @@ const isStaff = computed(() => ['admin', 'content_manager'].includes(props.userR
       </li>
       <li v-if="isStaff">
         <RouterLink
+          to="/advertising"
+          class="nav-link text-white d-flex align-items-center"
+          active-class="active"
+          style="--bs-nav-pills-link-active-bg: var(--sidebar-primary)"
+        >
+          <i class="bi bi-badge-ad sidebar-icon"></i>
+          <span class="sidebar-text ms-2">Реклама</span>
+        </RouterLink>
+      </li>
+      <li v-if="isStaff">
+        <RouterLink
           to="/tags"
           class="nav-link text-white d-flex align-items-center"
           active-class="active"

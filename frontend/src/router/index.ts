@@ -84,6 +84,12 @@ const router = createRouter({
       meta: { allowedRoles: ['admin', 'content_manager'] }
     },
     {
+      path: '/advertising',
+      name: 'advertising',
+      component: () => import('../views/AdvertisingView.vue'),
+      meta: { allowedRoles: ['admin', 'content_manager'] }
+    },
+    {
       path: '/subscriptions',
       name: 'subscriptions',
       component: () => import('../views/SubscriptionsView.vue'),
