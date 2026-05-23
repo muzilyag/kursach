@@ -271,6 +271,12 @@ export const ApiService = {
         });
     },
 
+    async deleteMe(): Promise<any> {
+        return this.request(`${Config.api.users}/me`, {
+            method: 'DELETE'
+        });
+    },
+
     async checkHealth(): Promise<boolean> {
         return this.request(Config.api.health);
     },
@@ -501,5 +507,9 @@ export const ApiService = {
         return this.request(`${Config.api.base}/advertising/${id}`, {
             method: 'DELETE'
         });
+    },
+
+    async getContentAdvertising(contentId: number): Promise<IAdvertising[]> {
+        return this.request(`${Config.api.content}/${contentId}/advertising`);
     }
 };

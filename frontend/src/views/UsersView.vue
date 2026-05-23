@@ -29,28 +29,34 @@ const { items, total, params, pages, load, handleSort } = useDataTable(
 
 const showModal = ref(false)
 const isEditing = ref(false)
-const userForm = reactive<IUserCreate & { user_id?: number; user_role: string }>({
+const currentUserRole = ref<string | null>(null)
+
+const userForm = reactive<IUserCreate & { user_id?: number; user_role: string; user_password?: string }>({
   user_name: '',
   user_email: '',
   user_role: 'user',
   user_birth_date: '',
-  user_registration_date: ''
+  user_registration_date: '',
+  user_password: ''
 })
 
 const roleLabels: Record<string, string> = {
+  superadmin: 'Суперадминистратор',
   admin: 'Администратор',
   content_manager: 'Контент-менеджер',
   user: 'Пользователь'
 }
 
 const openModal = (user: IUser | null = null) => {
-  if (user && user.user_role === 'admin') return
+  if (user && user.user_role === 'superadmin') return
+  if (user && user.user_role === 'admin' && currentUserRole.value !== 'superadmin') return
 
   isEditing.value = !!user
   if (user) {
     Object.assign(userForm, {
       ...user,
-      user_role: user.user_role || 'user'
+      user_role: user.user_role || 'user',
+      user_password: ''
     })
   } else {
     Object.assign(userForm, {
@@ -59,7 +65,8 @@ const openModal = (user: IUser | null = null) => {
       user_email: '',
       user_role: 'user',
       user_birth_date: '',
-      user_registration_date: new Date().toISOString().split('T')[0]
+      user_registration_date: new Date().toISOString().split('T')[0],
+      user_password: ''
     })
   }
   showModal.value = true
@@ -72,7 +79,8 @@ const closeModal = () => {
 const saveUser = async () => {
   try {
     if (isEditing.value && userForm.user_id) {
-      await ApiService.updateUser(userForm.user_id, userForm)
+      const { user_password, ...updateData } = userForm
+      await ApiService.updateUser(userForm.user_id, updateData)
     } else {
       await ApiService.createUser(userForm)
     }
@@ -84,7 +92,8 @@ const saveUser = async () => {
 }
 
 const deleteUser = async (user: IUser) => {
-  if (user.user_role === 'admin') return
+  if (user.user_role === 'superadmin') return
+  if (user.user_role === 'admin' && currentUserRole.value !== 'superadmin') return
 
   if (confirm('Удалить пользователя?')) {
     try {
@@ -105,7 +114,10 @@ watch(
   { deep: true }
 )
 
-onMounted(load)
+onMounted(() => {
+  currentUserRole.value = ApiService.getRoleFromToken()
+  load()
+})
 </script>
 
 <template>
@@ -168,6 +180,16 @@ onMounted(load)
                 />
                 <label class="form-check-label small" for="roleAdmin">Админы</label>
               </div>
+              <div v-if="currentUserRole === 'superadmin'" class="form-check form-check-inline m-0">
+                <input
+                  v-model="params.roles"
+                  class="form-check-input"
+                  type="checkbox"
+                  id="roleSuperAdmin"
+                  value="superadmin"
+                />
+                <label class="form-check-label small" for="roleSuperAdmin">Суперадмины</label>
+              </div>
             </div>
           </div>
         </div>
@@ -186,7 +208,8 @@ onMounted(load)
           @delete="deleteUser"
         >
           <template #actions="{ item }">
-            <span v-if="item.user_role === 'admin'" class="text-muted small">Нет действий</span>
+            <span v-if="item.user_role === 'superadmin'" class="text-muted small">Система</span>
+            <span v-else-if="item.user_role === 'admin' && currentUserRole !== 'superadmin'" class="text-muted small">Нет действий</span>
             <div v-else class="d-flex gap-2 justify-content-end">
               <button class="btn btn-sm btn-outline-primary" @click="openModal(item)">
                 <i class="bi bi-pencil"></i>
@@ -200,11 +223,13 @@ onMounted(load)
             <span
               class="badge"
               :class="
-                item.user_role === 'admin'
-                  ? 'bg-danger'
-                  : item.user_role === 'content_manager'
-                    ? 'bg-info'
-                    : 'bg-secondary'
+                item.user_role === 'superadmin'
+                  ? 'bg-dark'
+                  : item.user_role === 'admin'
+                    ? 'bg-danger'
+                    : item.user_role === 'content_manager'
+                      ? 'bg-info'
+                      : 'bg-secondary'
               "
             >
               {{ roleLabels[item.user_role] || item.user_role }}
@@ -259,12 +284,23 @@ onMounted(load)
             placeholder="example@mail.com"
           />
         </div>
+        <div v-if="!isEditing" class="mb-3">
+          <label class="form-label small fw-bold text-muted">Пароль</label>
+          <input
+            v-model="userForm.user_password"
+            type="password"
+            class="form-control"
+            required
+            placeholder="Введите пароль"
+          />
+        </div>
         <div class="mb-3">
           <label class="form-label small fw-bold text-muted">Роль системы</label>
           <select v-model="userForm.user_role" class="form-select" required>
             <option value="user">Пользователь</option>
             <option value="content_manager">Контент-менеджер</option>
-            <option value="admin">Администратор</option>
+            <option v-if="currentUserRole === 'superadmin'" value="admin">Администратор</option>
+            <option v-if="currentUserRole === 'superadmin' && userForm.user_role === 'superadmin'" value="superadmin">Суперадминистратор</option>
           </select>
         </div>
         <div class="row">

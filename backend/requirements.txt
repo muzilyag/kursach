@@ -13,5 +13,6 @@ PyJWT
 reportlab
 pytest
 pytest_asyncio
+pytest-cov
 httpx
 ruff

@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from datetime import date
 
+
 class ReportRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -36,7 +37,7 @@ class ReportRepository:
             LEFT JOIN stats s ON cg.m = s.m AND cg.genre_id = s.genre_id
             ORDER BY cg.m, cg.genre_name;
         """)
-        
+
         result = await self.session.execute(query, {"year": year})
         rows = result.mappings().all()
 
@@ -50,7 +51,7 @@ class ReportRepository:
         sorted_report = sorted(report_data.values(), key=lambda x: x["_order"])
         for item in sorted_report:
             item.pop("_order")
-        
+
         return sorted_report
 
     async def get_activity_report(self):
@@ -104,5 +105,7 @@ class ReportRepository:
             GROUP BY st.subscribe_type_name
             ORDER BY "Revenue (RUB)" DESC;
         """)
-        result = await self.session.execute(query, {"start_date": start_date, "end_date": end_date})
+        result = await self.session.execute(
+            query, {"start_date": start_date, "end_date": end_date}
+        )
         return [dict(row) for row in result.mappings().all()]

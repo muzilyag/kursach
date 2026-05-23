@@ -4,17 +4,23 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import func
 from src.models.content import Content, Genre, CopyrightHolder
 
+
 class ContentRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
     async def get_all_content(self, page: int = 1, limit: int = 10):
         offset = (page - 1) * limit
-        query = select(Content).options(
-            selectinload(Content.genres),
-            selectinload(Content.copyright_holders)
-        ).order_by(Content.content_name).offset(offset).limit(limit)
-        
+        query = (
+            select(Content)
+            .options(
+                selectinload(Content.genres), selectinload(Content.copyright_holders)
+            )
+            .order_by(Content.content_name)
+            .offset(offset)
+            .limit(limit)
+        )
+
         result = await self.session.execute(query)
         return result.scalars().all()
 
@@ -23,19 +29,21 @@ class ContentRepository:
         result = await self.session.execute(query)
         return result.scalar()
 
-    async def create_content(self, content_data: dict, genre_id: int, copyright_holder_id: int):
+    async def create_content(
+        self, content_data: dict, genre_id: int, copyright_holder_id: int
+    ):
         new_content = Content(
             content_name=content_data.get("content_name"),
             content_type=content_data.get("content_type"),
             content_duration=content_data.get("content_duration"),
             content_publish_date=content_data.get("content_publish_date"),
-            content_discription=content_data.get("content_discription")
+            content_discription=content_data.get("content_discription"),
         )
-        
+
         genre = await self.session.get(Genre, genre_id)
         if genre:
             new_content.genres.append(genre)
-            
+
         holder = await self.session.get(CopyrightHolder, copyright_holder_id)
         if holder:
             new_content.copyright_holders.append(holder)

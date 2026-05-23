@@ -13,23 +13,22 @@ from src.models.user import User
 from src.core.security import get_password_hash, create_access_token
 from src.core.config import settings
 
+
 @pytest_asyncio.fixture(scope="session")
 async def db_engine():
-    engine = create_async_engine(
-        settings.test_database_url, 
-        poolclass=NullPool
-    )
+    engine = create_async_engine(settings.test_database_url, poolclass=NullPool)
     async with engine.begin() as conn:
         await conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE;"))
         await conn.execute(text("CREATE SCHEMA public;"))
         await conn.run_sync(Base.metadata.create_all)
-    
+
     yield engine
-    
+
     async with engine.begin() as conn:
         await conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE;"))
         await conn.execute(text("CREATE SCHEMA public;"))
     await engine.dispose()
+
 
 def current_task_handler():
     try:
@@ -37,23 +36,23 @@ def current_task_handler():
     except RuntimeError:
         return None
 
+
 @pytest_asyncio.fixture(scope="function", loop_scope="session")
 async def db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
     connection = await db_engine.connect()
     trans = await connection.begin()
-    
+
     async_session_factory = async_sessionmaker(
-        connection, 
-        expire_on_commit=False, 
-        class_=AsyncSession
+        connection, expire_on_commit=False, class_=AsyncSession
     )
     session = async_session_factory()
-    
+
     yield session
-    
+
     await session.close()
     await trans.rollback()
     await connection.close()
+
 
 @pytest_asyncio.fixture(scope="function", loop_scope="session")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
@@ -68,6 +67,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
     app.dependency_overrides.clear()
 
+
 @pytest_asyncio.fixture(scope="function", loop_scope="session")
 async def normal_user(db_session: AsyncSession) -> User:
     user = User(
@@ -75,12 +75,13 @@ async def normal_user(db_session: AsyncSession) -> User:
         user_email="user@test.com",
         user_birth_date=date(1995, 1, 1),
         user_password=get_password_hash("userpass"),
-        user_role="user"
+        user_role="user",
     )
     db_session.add(user)
     await db_session.commit()
     await db_session.refresh(user)
     return user
+
 
 @pytest_asyncio.fixture(scope="function", loop_scope="session")
 async def admin_user(db_session: AsyncSession) -> User:
@@ -89,21 +90,82 @@ async def admin_user(db_session: AsyncSession) -> User:
         user_email="admin@test.com",
         user_birth_date=date(1990, 1, 1),
         user_password=get_password_hash("adminpass"),
-        user_role="admin"
+        user_role="admin",
     )
     db_session.add(user)
     await db_session.commit()
     await db_session.refresh(user)
     return user
 
+
+@pytest_asyncio.fixture(scope="function", loop_scope="session")
+async def content_manager_user(db_session: AsyncSession) -> User:
+    user = User(
+        user_name="manager_test",
+        user_email="manager@test.com",
+        user_birth_date=date(1988, 5, 5),
+        user_password=get_password_hash("managerpass"),
+        user_role="content_manager",
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
+@pytest_asyncio.fixture(scope="function", loop_scope="session")
+async def superadmin_user(db_session: AsyncSession) -> User:
+    user = User(
+        user_name="superadmin_test",
+        user_email="superadmin@test.com",
+        user_birth_date=date(1985, 10, 10),
+        user_password=get_password_hash("superpass"),
+        user_role="superadmin",
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
 @pytest_asyncio.fixture(scope="function", loop_scope="session")
 async def auth_client_user(client: AsyncClient, normal_user: User) -> AsyncClient:
-    token = create_access_token(data={"sub": str(normal_user.user_id), "role": normal_user.user_role})
+    token = create_access_token(
+        data={"sub": str(normal_user.user_id), "role": normal_user.user_role}
+    )
     client.headers["Authorization"] = f"Bearer {token}"
     return client
 
+
 @pytest_asyncio.fixture(scope="function", loop_scope="session")
 async def auth_client_admin(client: AsyncClient, admin_user: User) -> AsyncClient:
-    token = create_access_token(data={"sub": str(admin_user.user_id), "role": admin_user.user_role})
+    token = create_access_token(
+        data={"sub": str(admin_user.user_id), "role": admin_user.user_role}
+    )
+    client.headers["Authorization"] = f"Bearer {token}"
+    return client
+
+
+@pytest_asyncio.fixture(scope="function", loop_scope="session")
+async def auth_client_content_manager(
+    client: AsyncClient, content_manager_user: User
+) -> AsyncClient:
+    token = create_access_token(
+        data={
+            "sub": str(content_manager_user.user_id),
+            "role": content_manager_user.user_role,
+        }
+    )
+    client.headers["Authorization"] = f"Bearer {token}"
+    return client
+
+
+@pytest_asyncio.fixture(scope="function", loop_scope="session")
+async def auth_client_superadmin(
+    client: AsyncClient, superadmin_user: User
+) -> AsyncClient:
+    token = create_access_token(
+        data={"sub": str(superadmin_user.user_id), "role": superadmin_user.user_role}
+    )
     client.headers["Authorization"] = f"Bearer {token}"
     return client

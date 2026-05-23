@@ -2,18 +2,35 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, Table, Column, Integer
 from typing import List, Optional
 import datetime
 
 from src.core.database import get_db
 from src.core.security import get_current_user
 from src.schemas.content import ContentCreate, ViewingUpdate
-from src.models.content import Content, Genre, CopyrightHolder, Tag
+from src.models.content import (
+    Content,
+    Genre,
+    CopyrightHolder,
+    Tag,
+    content_tag_association,
+)
+from src.models.advertising import Advertising
 from src.models.user import User
 from src.models.viewing import Viewing
+from src.core.security import RoleChecker
 
 router = APIRouter()
+
+suitable_for_association = Table(
+    "suitable_for",
+    Content.metadata,
+    Column("advetising_id", Integer),
+    Column("tag_id", Integer),
+    extend_existing=True,
+)
+
 
 @router.get("")
 async def get_content(
@@ -25,20 +42,20 @@ async def get_content(
     copyright_holder_ids: Optional[List[int]] = Query(None),
     sort: str = "content_id",
     order: str = "desc",
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     offset = (page - 1) * limit
-    
+
     query = select(Content).options(
         selectinload(Content.genres),
         selectinload(Content.copyright_holders),
-        selectinload(Content.tags)
+        selectinload(Content.tags),
     )
 
     if search:
         search_filter = or_(
             Content.content_name.ilike(f"%{search}%"),
-            Content.content_discription.ilike(f"%{search}%")
+            Content.content_discription.ilike(f"%{search}%"),
         )
         query = query.where(search_filter)
 
@@ -52,7 +69,11 @@ async def get_content(
 
     if copyright_holder_ids:
         for c_id in copyright_holder_ids:
-            query = query.where(Content.copyright_holders.any(CopyrightHolder.copyright_holder_id == c_id))
+            query = query.where(
+                Content.copyright_holders.any(
+                    CopyrightHolder.copyright_holder_id == c_id
+                )
+            )
 
     count_query = select(func.count()).select_from(query.subquery())
     total_result = await db.execute(count_query)
@@ -60,90 +81,126 @@ async def get_content(
 
     col = getattr(Content, sort, Content.content_id)
     query = query.order_by(col.desc() if order == "desc" else col.asc())
-    
+
     result = await db.execute(query.offset(offset).limit(limit))
     content_list = result.scalars().all()
-    
+
     formatted_result = []
     for c in content_list:
-        formatted_result.append({
-            "content_id": c.content_id,
-            "content_name": c.content_name,
-            "content_type": c.content_type,
-            "content_duration": str(c.content_duration),
-            "content_publish_date": str(c.content_publish_date) if c.content_publish_date else None,
-            "content_discription": c.content_discription,
-            "genres": [{"genre_id": g.genre_id, "genre_name": g.genre_name} for g in c.genres],
-            "tags": [{"tag_id": t.tag_id, "tag_name": t.tag_name} for t in c.tags],
-            "copyright_holders": [
-                {
-                    "copyright_holder_id": h.copyright_holder_id, 
-                    "copyright_holder_name": h.copyright_holder_name
-                } for h in c.copyright_holders
-            ]
-        })
-        
+        formatted_result.append(
+            {
+                "content_id": c.content_id,
+                "content_name": c.content_name,
+                "content_type": c.content_type,
+                "content_duration": str(c.content_duration),
+                "content_publish_date": str(c.content_publish_date)
+                if c.content_publish_date
+                else None,
+                "content_discription": c.content_discription,
+                "genres": [
+                    {"genre_id": g.genre_id, "genre_name": g.genre_name}
+                    for g in c.genres
+                ],
+                "tags": [{"tag_id": t.tag_id, "tag_name": t.tag_name} for t in c.tags],
+                "copyright_holders": [
+                    {
+                        "copyright_holder_id": h.copyright_holder_id,
+                        "copyright_holder_name": h.copyright_holder_name,
+                    }
+                    for h in c.copyright_holders
+                ],
+            }
+        )
+
     return {
         "items": formatted_result,
         "total": total,
         "page": page,
-        "pages": (total + limit - 1) // limit
+        "pages": (total + limit - 1) // limit,
     }
 
-@router.post("")
+
+@router.post("", dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))])
 async def create_content(data: ContentCreate, db: AsyncSession = Depends(get_db)):
+    genres_list = []
+    if data.genre_ids:
+        res = await db.execute(select(Genre).where(Genre.genre_id.in_(data.genre_ids)))
+        genres_list = list(res.scalars().all())
+
+    holders_list = []
+    if data.copyright_holder_ids:
+        res = await db.execute(
+            select(CopyrightHolder).where(
+                CopyrightHolder.copyright_holder_id.in_(data.copyright_holder_ids)
+            )
+        )
+        holders_list = list(res.scalars().all())
+
+    tags_list = []
+    if data.tag_ids:
+        res = await db.execute(select(Tag).where(Tag.tag_id.in_(data.tag_ids)))
+        tags_list = list(res.scalars().all())
+
     new_content = Content(
         content_name=data.content_name,
         content_type=data.content_type,
         content_duration=data.content_duration,
         content_publish_date=data.content_publish_date,
-        content_discription=data.content_discription
+        content_discription=data.content_discription,
     )
-    
-    if data.genre_ids:
-        res = await db.execute(select(Genre).where(Genre.genre_id.in_(data.genre_ids)))
-        new_content.genres = list(res.scalars().all())
-        
-    if data.copyright_holder_ids:
-        res = await db.execute(select(CopyrightHolder).where(CopyrightHolder.copyright_holder_id.in_(data.copyright_holder_ids)))
-        new_content.copyright_holders = list(res.scalars().all())
-        
-    if data.tag_ids:
-        res = await db.execute(select(Tag).where(Tag.tag_id.in_(data.tag_ids)))
-        new_content.tags = list(res.scalars().all())
-        
+
+    new_content.genres = genres_list
+    new_content.copyright_holders = holders_list
+    new_content.tags = tags_list
+
     db.add(new_content)
     await db.commit()
     return {"success": True, "id": new_content.content_id}
 
-@router.put("/{content_id}")
-async def update_content(content_id: int, data: ContentCreate, db: AsyncSession = Depends(get_db)):
-    query = select(Content).options(
-        selectinload(Content.genres), 
-        selectinload(Content.copyright_holders),
-        selectinload(Content.tags)
-    ).where(Content.content_id == content_id)
-    
+
+@router.put(
+    "/{content_id}",
+    dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))],
+)
+async def update_content(
+    content_id: int, data: ContentCreate, db: AsyncSession = Depends(get_db)
+):
+    query = (
+        select(Content)
+        .options(
+            selectinload(Content.genres),
+            selectinload(Content.copyright_holders),
+            selectinload(Content.tags),
+        )
+        .where(Content.content_id == content_id)
+    )
+
     content = (await db.execute(query)).scalar_one_or_none()
-    if not content: 
+    if not content:
         raise HTTPException(status_code=404, detail="Контент не найден")
-    
+
     content.content_name = data.content_name
     content.content_type = data.content_type
     content.content_duration = data.content_duration
     content.content_publish_date = data.content_publish_date
     content.content_discription = data.content_discription
-    
+
     if data.genre_ids is not None:
         if data.genre_ids:
-            res = await db.execute(select(Genre).where(Genre.genre_id.in_(data.genre_ids)))
+            res = await db.execute(
+                select(Genre).where(Genre.genre_id.in_(data.genre_ids))
+            )
             content.genres = list(res.scalars().all())
         else:
             content.genres = []
-        
+
     if data.copyright_holder_ids is not None:
         if data.copyright_holder_ids:
-            res = await db.execute(select(CopyrightHolder).where(CopyrightHolder.copyright_holder_id.in_(data.copyright_holder_ids)))
+            res = await db.execute(
+                select(CopyrightHolder).where(
+                    CopyrightHolder.copyright_holder_id.in_(data.copyright_holder_ids)
+                )
+            )
             content.copyright_holders = list(res.scalars().all())
         else:
             content.copyright_holders = []
@@ -154,42 +211,48 @@ async def update_content(content_id: int, data: ContentCreate, db: AsyncSession 
             content.tags = list(res.scalars().all())
         else:
             content.tags = []
-        
+
     await db.commit()
     return {"success": True, "message": "Контент обновлен"}
 
-@router.get("/{content_id}/progress")
+
+@router.get(
+    "/{content_id}/progress",
+    dependencies=[Depends(RoleChecker(["user", "superadmin"]))],
+)
 async def get_viewing_progress(
     content_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     query = select(Viewing).where(
-        Viewing.user_id == current_user.user_id,
-        Viewing.content_id == content_id
+        Viewing.user_id == current_user.user_id, Viewing.content_id == content_id
     )
     result = await db.execute(query)
     viewing = result.scalar_one_or_none()
-    
+
     if not viewing:
         return {"progress": 0}
-        
+
     return {"progress": viewing.viewing_progress}
 
-@router.patch("/{content_id}/progress")
+
+@router.patch(
+    "/{content_id}/progress",
+    dependencies=[Depends(RoleChecker(["user", "superadmin"]))],
+)
 async def update_viewing_progress(
     content_id: int,
     data: ViewingUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     content_exists = await db.get(Content, content_id)
     if not content_exists:
         raise HTTPException(status_code=404, detail="Контент не найден")
 
     query = select(Viewing).where(
-        Viewing.user_id == current_user.user_id,
-        Viewing.content_id == content_id
+        Viewing.user_id == current_user.user_id, Viewing.content_id == content_id
     )
     result = await db.execute(query)
     viewing = result.scalar_one_or_none()
@@ -203,7 +266,7 @@ async def update_viewing_progress(
             content_id=content_id,
             viewing_progress=data.progress,
             viewing_start=now,
-            viewing_finish=now
+            viewing_finish=now,
         )
         db.add(viewing)
 
@@ -212,29 +275,87 @@ async def update_viewing_progress(
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-        
+
     return {"success": True, "current_progress": data.progress}
 
-@router.delete("/{content_id}")
+
+@router.delete(
+    "/{content_id}",
+    dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))],
+)
 async def delete_content(content_id: int, db: AsyncSession = Depends(get_db)):
     content = await db.get(Content, content_id)
-    if not content: 
+    if not content:
         raise HTTPException(status_code=404, detail="Контент не найден")
     await db.delete(content)
     await db.commit()
     return {"success": True, "message": "Контент удален"}
 
+
+@router.get("/{content_id}/advertising")
+async def get_content_advertising(content_id: int, db: AsyncSession = Depends(get_db)):
+    content = await db.get(Content, content_id)
+    if not content:
+        raise HTTPException(status_code=404, detail="Контент не найден")
+
+    today = datetime.date.today()
+
+    query = (
+        select(Advertising)
+        .join(
+            suitable_for_association,
+            Advertising.advertising_id == suitable_for_association.c.advetising_id,
+        )
+        .join(
+            content_tag_association,
+            suitable_for_association.c.tag_id == content_tag_association.c.tag_id,
+        )
+        .where(content_tag_association.c.content_id == content_id)
+        .where(Advertising.advertising_start_date <= today)
+        .where(Advertising.advertising_finish_date >= today)
+        .distinct()
+    )
+
+    result = await db.execute(query)
+    ads = result.scalars().all()
+
+    return [
+        {
+            "advertising_id": ad.advertising_id,
+            "advertising_name": ad.advertising_name,
+            "advertising_duration": str(ad.advertising_duration),
+            "advertising_owner": ad.advertising_owner,
+            "advertising_start_date": str(ad.advertising_start_date),
+            "advertising_finish_date": str(ad.advertising_finish_date),
+        }
+        for ad in ads
+    ]
+
+
 @router.get("/genres")
 async def get_genres(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Genre))
-    return [{"genre_id": g.genre_id, "genre_name": g.genre_name} for g in result.scalars().all()]
+    return [
+        {"genre_id": g.genre_id, "genre_name": g.genre_name}
+        for g in result.scalars().all()
+    ]
+
 
 @router.get("/copyright-holders")
 async def get_copyright_holders(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(CopyrightHolder))
-    return [{"copyright_holder_id": h.copyright_holder_id, "copyright_holder_name": h.copyright_holder_name} for h in result.scalars().all()]
+    return [
+        {
+            "copyright_holder_id": h.copyright_holder_id,
+            "copyright_holder_name": h.copyright_holder_name,
+        }
+        for h in result.scalars().all()
+    ]
+
 
 @router.get("/tags")
 async def get_tags(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Tag))
-    return [{"tag_id": t.tag_id, "tag_name": t.tag_name} for t in result.scalars().all()]
+    return [
+        {"tag_id": t.tag_id, "tag_name": t.tag_name} for t in result.scalars().all()
+    ]

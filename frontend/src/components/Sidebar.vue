@@ -10,7 +10,9 @@ const props = defineProps<{
   isDbConnected: boolean
 }>()
 
-const isStaff = computed(() => ['admin', 'content_manager'].includes(props.userRole || ''))
+const canSeeUser = computed(() => ['user', 'superadmin'].includes(props.userRole || ''))
+const canSeeManagement = computed(() => ['admin', 'superadmin'].includes(props.userRole || ''))
+const canSeeContent = computed(() => ['content_manager', 'superadmin'].includes(props.userRole || ''))
 </script>
 
 <template>
@@ -51,7 +53,7 @@ const isStaff = computed(() => ['admin', 'content_manager'].includes(props.userR
           <span class="sidebar-text ms-2">Профиль</span>
         </RouterLink>
       </li>
-      <li class="nav-item">
+      <li class="nav-item" v-if="canSeeUser">
         <RouterLink
           to="/catalog"
           class="nav-link text-white d-flex align-items-center"
@@ -64,7 +66,7 @@ const isStaff = computed(() => ['admin', 'content_manager'].includes(props.userR
       </li>
       <li class="nav-item">
         <RouterLink
-          v-if="userRole === 'admin'"
+          v-if="canSeeManagement"
           to="/admin/dashboard"
           class="nav-link text-white d-flex align-items-center"
           active-class="active"
@@ -74,7 +76,7 @@ const isStaff = computed(() => ['admin', 'content_manager'].includes(props.userR
           <span class="sidebar-text ms-2">Дашборд</span>
         </RouterLink>
       </li>
-      <li v-if="userRole === 'admin'">
+      <li v-if="canSeeManagement">
         <RouterLink
           to="/users"
           class="nav-link text-white d-flex align-items-center"
@@ -85,7 +87,7 @@ const isStaff = computed(() => ['admin', 'content_manager'].includes(props.userR
           <span class="sidebar-text ms-2">Пользователи</span>
         </RouterLink>
       </li>
-      <li v-if="isStaff">
+      <li v-if="canSeeContent">
         <RouterLink
           to="/content"
           class="nav-link text-white d-flex align-items-center"
@@ -96,7 +98,7 @@ const isStaff = computed(() => ['admin', 'content_manager'].includes(props.userR
           <span class="sidebar-text ms-2">Контент</span>
         </RouterLink>
       </li>
-      <li v-if="isStaff">
+      <li v-if="canSeeContent">
         <RouterLink
           to="/advertising"
           class="nav-link text-white d-flex align-items-center"
@@ -107,7 +109,7 @@ const isStaff = computed(() => ['admin', 'content_manager'].includes(props.userR
           <span class="sidebar-text ms-2">Реклама</span>
         </RouterLink>
       </li>
-      <li v-if="isStaff">
+      <li v-if="canSeeContent">
         <RouterLink
           to="/tags"
           class="nav-link text-white d-flex align-items-center"
@@ -118,7 +120,7 @@ const isStaff = computed(() => ['admin', 'content_manager'].includes(props.userR
           <span class="sidebar-text ms-2">Теги</span>
         </RouterLink>
       </li>
-      <li v-if="isStaff">
+      <li v-if="canSeeContent">
         <RouterLink
           to="/copyright-holders"
           class="nav-link text-white d-flex align-items-center"
@@ -129,7 +131,7 @@ const isStaff = computed(() => ['admin', 'content_manager'].includes(props.userR
           <span class="sidebar-text ms-2">Правообладатели</span>
         </RouterLink>
       </li>
-      <li v-if="userRole === 'admin'">
+      <li v-if="canSeeManagement">
         <RouterLink
           to="/subscriptions"
           class="nav-link text-white d-flex align-items-center"
@@ -140,7 +142,7 @@ const isStaff = computed(() => ['admin', 'content_manager'].includes(props.userR
           <span class="sidebar-text ms-2">Подписки</span>
         </RouterLink>
       </li>
-      <li v-if="userRole === 'admin'">
+      <li v-if="canSeeManagement">
         <RouterLink
           to="/reports"
           class="nav-link text-white d-flex align-items-center"
@@ -156,9 +158,7 @@ const isStaff = computed(() => ['admin', 'content_manager'].includes(props.userR
     <hr style="border-color: var(--sidebar-border)" />
 
     <div class="status-indicator d-flex flex-column align-items-center align-items-md-start px-2">
-      <small style="color: var(--sidebar-text-muted)" class="d-block mb-1 sidebar-text"
-        >Статус БД:</small
-      >
+      <small style="color: var(--sidebar-text-muted)" class="d-block mb-1 sidebar-text">Статус БД:</small>
       <div
         v-if="isDbConnected"
         style="color: var(--success-color)"

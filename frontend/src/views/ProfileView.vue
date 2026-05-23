@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ApiService, type IUser } from '../services/api'
 
+const router = useRouter()
 const user = ref<IUser | null>(null)
 const isLoading = ref(true)
 const isSaving = ref(false)
 const isChangingPassword = ref(false)
+const isDeleting = ref(false)
+const isCancelling = ref(false)
 const message = ref({ text: '', type: '' })
 const pwdMessage = ref({ text: '', type: '' })
 
@@ -73,6 +77,40 @@ const handleChangePassword = async () => {
   }
 }
 
+const handleCancelSubscription = async () => {
+  if (!user.value || !user.value.active_subscription) return
+  if (confirm('Вы уверены, что хотите отменить подписку? Она будет активна до конца оплаченного периода.')) {
+    isCancelling.value = true
+    try {
+      await ApiService.cancelSubscription(
+        user.value.user_id,
+        user.value.active_subscription.subscribe_type_id,
+        user.value.active_subscription.subscribe_finish
+      )
+      alert('Подписка успешно отменена!')
+      await loadProfile()
+    } catch {
+      alert('Ошибка при отмене подписки')
+    } finally {
+      isCancelling.value = false
+    }
+  }
+}
+
+const handleDeleteAccount = async () => {
+  if (confirm('Вы уверены, что хотите удалить аккаунт? Это действие необратимо.')) {
+    isDeleting.value = true
+    try {
+      await ApiService.deleteMe()
+      ApiService.logout()
+    } catch {
+      alert('Ошибка при удалении аккаунта')
+    } finally {
+      isDeleting.value = false
+    }
+  }
+}
+
 onMounted(loadProfile)
 </script>
 
@@ -80,7 +118,9 @@ onMounted(loadProfile)
   <div class="container-fluid">
     <div class="row justify-content-center g-4">
       <div class="col-md-8 col-lg-6">
+        
         <div
+          v-if="user?.user_role === 'user' || user?.user_role === 'superadmin'"
           class="card border-0 shadow-sm mb-4 overflow-hidden"
           style="background-color: var(--card-bg); border-radius: 16px"
         >
@@ -106,17 +146,29 @@ onMounted(loadProfile)
                       Активна до:
                       {{ new Date(user.active_subscription.subscribe_finish).toLocaleDateString() }}
                     </p>
+                    <div class="mt-3">
+                      <button
+                        @click="handleCancelSubscription"
+                        :disabled="isCancelling"
+                        class="btn btn-sm btn-outline-light px-3 rounded-pill fw-semibold"
+                      >
+                        <span v-if="isCancelling" class="spinner-border spinner-border-sm me-1"></span>
+                        Отменить подписку
+                      </button>
+                    </div>
                   </div>
                   <div v-else>
                     <p class="text-muted mb-0">Подписка не активна</p>
                   </div>
                 </div>
-                <RouterLink
-                  to="/subscribe"
-                  class="btn btn-light fw-bold rounded-pill px-4 shadow-sm"
-                >
-                  {{ user?.active_subscription ? 'Продлить' : 'Оформить' }}
-                </RouterLink>
+                <div class="d-flex flex-column align-items-end gap-2">
+                  <RouterLink
+                    to="/subscribe"
+                    class="btn btn-light fw-bold rounded-pill px-4 shadow-sm"
+                  >
+                    {{ user?.active_subscription ? 'Сменить тариф' : 'Оформить' }}
+                  </RouterLink>
+                </div>
               </div>
             </div>
           </div>
@@ -241,6 +293,15 @@ onMounted(loadProfile)
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mt-4 mb-4" style="background-color: var(--card-bg)">
+          <div class="card-body p-4">
+            <h5 class="mb-4 text-danger">Опасная зона</h5>
+            <button class="btn btn-outline-danger w-100" :disabled="isDeleting" @click="handleDeleteAccount">
+              {{ isDeleting ? 'Удаление...' : 'Удалить аккаунт' }}
+            </button>
           </div>
         </div>
 

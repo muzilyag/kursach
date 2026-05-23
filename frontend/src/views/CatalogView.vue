@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue'
 import { ApiService } from '../services/api'
-import type { IContent, IGenre, ITag } from '../services/api'
+import type { IContent, IGenre, ITag, IAdvertising } from '../services/api'
 import Pagination from '../components/Pagination.vue'
 
 const movies = ref<IContent[]>([])
@@ -28,6 +28,11 @@ const selectedMovie = ref<IContent | null>(null)
 const currentProgress = ref(0)
 const playerLoading = ref(false)
 let tickInterval: ReturnType<typeof setInterval> | null = null
+
+const showAd = ref(false)
+const adData = ref<IAdvertising | null>(null)
+const skipCountdown = ref(5)
+let adInterval: ReturnType<typeof setInterval> | null = null
 
 const pagesArray = computed(() => {
   const arr = []
@@ -80,50 +85,101 @@ const resetFilters = () => {
 }
 
 const saveProgress = async () => {
-  if (selectedMovie.value) {
+  const token = localStorage.getItem('token')
+  if (selectedMovie.value && !showAd.value && token) {
     try {
       await ApiService.updateContentProgress(
         selectedMovie.value.content_id,
         Math.floor(currentProgress.value)
       )
     } catch (e) {
-      console.error('Ошибка сохранения прогресса:', e)
+      console.error(e)
     }
   }
 }
 
-const openPlayer = async (movie: IContent) => {
+const handleMovieClick = async (movie: IContent) => {
+  const token = localStorage.getItem('token')
+
+  if (!token) {
+    try {
+      const ads = await ApiService.getContentAdvertising(movie.content_id)
+      
+      if (ads && ads.length > 0) {
+        adData.value = ads[0] ?? null
+        skipCountdown.value = 5
+        showAd.value = true
+        selectedMovie.value = movie
+        document.body.style.overflow = 'hidden'
+        
+        adInterval = setInterval(() => {
+          if (skipCountdown.value > 0) {
+            skipCountdown.value--
+          } else {
+            if (adInterval) clearInterval(adInterval)
+          }
+        }, 1000)
+        return
+      }
+    } catch (e) {
+      console.error('Ошибка загрузки рекламы:', e)
+    }
+  }
+
   selectedMovie.value = movie
+  startPlayer(movie)
+}
+
+const skipAd = () => {
+  if (adInterval) clearInterval(adInterval)
+  if (selectedMovie.value) {
+    startPlayer(selectedMovie.value)
+  }
+}
+
+const startPlayer = async (movie: IContent) => {
+  showAd.value = false
+  adData.value = null
   currentProgress.value = 0
   playerLoading.value = true
   document.body.style.overflow = 'hidden'
 
-  try {
-    const response = await ApiService.getContentProgress(movie.content_id)
-    currentProgress.value = response.progress || 0
-  } catch (e) {
-    console.error('Не удалось загрузить прогресс:', e)
-    currentProgress.value = 0
-  } finally {
-    playerLoading.value = false
+  const token = localStorage.getItem('token')
+
+  if (token) {
+    try {
+      const response = await ApiService.getContentProgress(movie.content_id)
+      currentProgress.value = response.progress || 0
+    } catch (e) {
+      currentProgress.value = 0
+    }
   }
 
-  tickInterval = setInterval(saveProgress, 20000)
+  playerLoading.value = false
+
+  if (token) {
+    tickInterval = setInterval(saveProgress, 20000)
+  }
 }
 
 const closePlayer = async () => {
-  if (tickInterval) {
-    clearInterval(tickInterval)
-    tickInterval = null
+  if (adInterval) clearInterval(adInterval)
+  if (tickInterval) clearInterval(tickInterval)
+  tickInterval = null
+  
+  if (!showAd.value) {
+    await saveProgress()
   }
-  await saveProgress()
+  
   selectedMovie.value = null
+  showAd.value = false
+  adData.value = null
   currentProgress.value = 0
   document.body.style.overflow = ''
 }
 
 const handleUnload = () => {
-  if (selectedMovie.value) {
+  if (selectedMovie.value && !showAd.value) {
     saveProgress()
   }
 }
@@ -163,6 +219,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (tickInterval) clearInterval(tickInterval)
+  if (adInterval) clearInterval(adInterval)
   window.removeEventListener('beforeunload', handleUnload)
 })
 </script>
@@ -360,7 +417,7 @@ onUnmounted(() => {
                   >
                 </div>
                 <button
-                  @click="openPlayer(movie)"
+                  @click="handleMovieClick(movie)"
                   class="btn w-100 py-2 fw-bold action-btn"
                   style="background-color: var(--sidebar-primary); color: #fff; border-radius: 8px"
                 >
@@ -393,8 +450,8 @@ onUnmounted(() => {
       <div class="player-modal shadow-lg">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <h4 class="mb-0 text-white fw-bold">{{ selectedMovie.content_name }}</h4>
-            <small class="text-white-50"
+            <h4 class="mb-0 text-white fw-bold">{{ showAd ? 'Реклама' : selectedMovie.content_name }}</h4>
+            <small class="text-white-50" v-if="!showAd"
               >{{ selectedMovie.content_type }} • {{ selectedMovie.content_duration }}</small
             >
           </div>
@@ -406,9 +463,22 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <div
-          class="video-placeholder rounded-3 mb-4 d-flex align-items-center justify-content-center"
-        >
+        <div v-if="showAd" class="video-placeholder rounded-3 mb-4 d-flex flex-column align-items-center justify-content-center p-4 text-center position-relative">
+          <div class="position-absolute top-0 start-0 m-3 badge bg-warning text-dark px-3 py-2 fs-6">Реклама</div>
+          <i class="bi bi-megaphone-fill text-warning mb-3" style="font-size: 3rem;"></i>
+          <h2 class="text-white fw-bold mb-2">{{ adData?.advertising_name || 'Рекламная пауза' }}</h2>
+          <p class="text-white-50 fs-5 mb-4">Спонсор показа: {{ adData?.advertising_owner || 'Неизвестно' }}</p>
+          <button 
+            class="btn btn-light rounded-pill px-5 py-2 fw-bold" 
+            :disabled="skipCountdown > 0" 
+            @click="skipAd"
+          >
+            <span v-if="skipCountdown > 0">Пропустить через {{ skipCountdown }} сек</span>
+            <span v-else>Пропустить рекламу <i class="bi bi-skip-forward-fill ms-1"></i></span>
+          </button>
+        </div>
+
+        <div v-else class="video-placeholder rounded-3 mb-4 d-flex align-items-center justify-content-center">
           <div v-if="playerLoading" class="spinner-border text-light" role="status"></div>
           <div v-else class="text-center text-white-50">
             <svg
@@ -428,7 +498,7 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div class="d-flex align-items-center gap-3">
+        <div v-if="!showAd" class="d-flex align-items-center gap-3">
           <span class="text-white-50 small">0%</span>
           <input
             type="range"

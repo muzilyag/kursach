@@ -1,7 +1,16 @@
-from sqlalchemy import Column, Integer, String, Date
+from sqlalchemy import Column, Integer, String, Date, Enum
 from src.core.database import Base
 from sqlalchemy.orm import relationship
 import datetime
+import enum
+
+
+class UserRole(str, enum.Enum):
+    user = "user"
+    admin = "admin"
+    content_manager = "content_manager"
+    superadmin = "superadmin"
+
 
 class User(Base):
     __tablename__ = "User"
@@ -12,7 +21,11 @@ class User(Base):
     user_birth_date = Column(Date, nullable=False)
     user_registration_date = Column(Date, nullable=False, default=datetime.date.today)
     user_password = Column(String(255), nullable=False)
-    user_role = Column(String(20), nullable=False, default='user')
+    user_role = Column(
+        Enum(UserRole, native_enum=False, length=50),
+        nullable=False,
+        default=UserRole.user,
+    )
 
     subscriptions = relationship("Subscribe", back_populates="user")
     payments = relationship("Payment", back_populates="user")

@@ -15,6 +15,7 @@ const columns = [
 
 const isEditing = ref(false)
 const currentId = ref<number | null>(null)
+const isPanelOpen = ref(false)
 const tagForm = reactive({
   tag_name: '',
   content_ids: [] as number[]
@@ -126,6 +127,15 @@ const getPopularTagStyle = (tagName: string) => {
   }
 }
 
+const openPanel = () => {
+  isPanelOpen.value = true
+}
+
+const closePanel = () => {
+  isPanelOpen.value = false
+  resetForm()
+}
+
 const setEdit = (item: ITag) => {
   isEditing.value = true
   currentId.value = item.tag_id
@@ -133,6 +143,7 @@ const setEdit = (item: ITag) => {
   tagForm.content_ids = allContent.value
     .filter((c) => c.tags?.some((t: any) => t.tag_id === item.tag_id))
     .map((c) => c.content_id)
+  openPanel()
 }
 
 const resetForm = () => {
@@ -152,7 +163,7 @@ const saveTag = async () => {
     } else {
       await ApiService.createTag(tagForm)
     }
-    resetForm()
+    closePanel()
     load()
     loadStatsAndTags()
   } catch (e: any) {
@@ -298,55 +309,8 @@ onUnmounted(() => {
       <div class="resizer" @mousedown="startResizing"></div>
 
       <div class="right-wrapper d-flex flex-column" :style="{ width: 100 - cloudWidth + '%' }">
-        <div class="card shadow-sm border-0 mb-3 flex-shrink-0">
-          <div class="card-header bg-white py-3 border-0">
-            <h5 class="card-title mb-0 fw-bold">
-              {{ isEditing ? 'Редактировать тег' : 'Добавить тег' }}
-            </h5>
-          </div>
-          <div class="card-body py-0 pb-3">
-            <form @submit.prevent="saveTag">
-              <div class="mb-3">
-                <label class="form-label small fw-bold">Название тега</label>
-                <input
-                  v-model="tagForm.tag_name"
-                  type="text"
-                  class="form-control"
-                  placeholder="Напр: боевик"
-                  required
-                />
-              </div>
-              <div class="mb-3">
-                <label class="form-label small fw-bold">Связанный контент</label>
-                <div class="border rounded p-2 bg-white form-control checkbox-list-container">
-                  <div class="form-check mb-1" v-for="c in allContent" :key="c.content_id">
-                    <input
-                      class="form-check-input"
-                      type="checkbox"
-                      :value="c.content_id"
-                      :id="'content-' + c.content_id"
-                      v-model="tagForm.content_ids"
-                    />
-                    <label class="form-check-label small" :for="'content-' + c.content_id">
-                      {{ c.content_name }}
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary flex-grow-1">
-                  {{ isEditing ? 'Обновить' : 'Сохранить' }}
-                </button>
-                <button v-if="isEditing" type="button" class="btn btn-light" @click="resetForm">
-                  Отмена
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-
         <div class="card shadow-sm border-0 flex-grow-1 d-flex flex-column">
-          <div class="card-header bg-white p-3 flex-shrink-0">
+          <div class="card-header bg-white p-3 flex-shrink-0 d-flex gap-3">
             <div class="input-group">
               <span class="input-group-text bg-light border-end-0"
                 ><i class="bi bi-search text-muted"></i
@@ -359,6 +323,7 @@ onUnmounted(() => {
                 placeholder="Поиск по названию..."
               />
             </div>
+            <button class="btn btn-primary fw-bold text-nowrap px-4" @click="openPanel()">Добавить тег</button>
           </div>
 
           <div class="card-body p-0 flex-grow-1 overflow-auto">
@@ -388,6 +353,22 @@ onUnmounted(() => {
                   {{ item.views_count ?? 0 }}
                 </span>
               </template>
+
+              <template #actions="{ item }">
+                <button 
+                  class="btn btn-sm btn-outline-primary me-2" 
+                  @click="setEdit(item)"
+                >
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button 
+                  class="btn btn-sm btn-outline-danger" 
+                  :disabled="isEditing && currentId === item.tag_id"
+                  @click="deleteItem(item)"
+                >
+                  <i class="bi bi-trash"></i>
+                </button>
+              </template>
             </DataTable>
           </div>
 
@@ -406,6 +387,56 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
+    </div>
+
+    <div v-if="isPanelOpen" class="panel-overlay" @click="closePanel"></div>
+    <div class="side-panel" :class="{ open: isPanelOpen }">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="mb-0 fw-bold">{{ isEditing ? 'Редактировать тег' : 'Добавить тег' }}</h5>
+        <button type="button" class="btn-close shadow-none" @click="closePanel"></button>
+      </div>
+
+      <form @submit.prevent="saveTag" class="d-flex flex-column h-100">
+        <div class="flex-grow-1">
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Название тега</label>
+            <input
+              v-model="tagForm.tag_name"
+              type="text"
+              class="form-control"
+              placeholder="Напр: боевик"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Связанный контент</label>
+            <div class="border rounded p-2 bg-light form-control checkbox-list-container">
+              <div class="form-check mb-1" v-for="c in allContent" :key="c.content_id">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  :value="c.content_id"
+                  :id="'tag-content-' + c.content_id"
+                  v-model="tagForm.content_ids"
+                />
+                <label class="form-check-label small" :for="'tag-content-' + c.content_id">
+                  {{ c.content_name }}
+                </label>
+              </div>
+              <div v-if="allContent.length === 0" class="text-muted small">Контент не найден</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="d-flex gap-2 mt-4 pb-4">
+          <button type="submit" class="btn btn-primary flex-grow-1 fw-bold">
+            {{ isEditing ? 'Обновить' : 'Сохранить' }}
+          </button>
+          <button type="button" class="btn btn-light fw-bold" @click="closePanel">
+            Отмена
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </template>
@@ -509,7 +540,38 @@ onUnmounted(() => {
 }
 
 .checkbox-list-container {
-  max-height: 180px;
+  max-height: 65vh;
   overflow-y: auto;
+}
+
+.panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 1040;
+}
+
+.side-panel {
+  position: fixed;
+  top: 0;
+  right: -450px;
+  width: 450px;
+  height: 100vh;
+  background: #fff;
+  z-index: 1050;
+  transition: right 0.3s cubic-bezier(0.82, 0.085, 0.395, 0.895);
+  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
+  overflow-y: auto;
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.side-panel.open {
+  right: 0;
 }
 </style>

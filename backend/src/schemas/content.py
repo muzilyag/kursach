@@ -2,23 +2,29 @@ from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import date, time
 from typing import Optional, List
 
+
 class TagBase(BaseModel):
     tag_name: str
+
 
 class TagCreate(TagBase):
     content_ids: List[int] = []
 
+
 class TagRead(TagBase):
     tag_id: int
     model_config = ConfigDict(from_attributes=True)
+
 
 class CopyrightHolderBase(BaseModel):
     copyright_holder_name: str
     copyright_holder_phone: str
     copyright_holder_email: EmailStr
 
+
 class CopyrightHolderCreate(CopyrightHolderBase):
     content_ids: List[int] = []
+
 
 class CopyrightHolderRead(BaseModel):
     copyright_holder_id: int
@@ -27,10 +33,12 @@ class CopyrightHolderRead(BaseModel):
     copyright_holder_email: str
     model_config = ConfigDict(from_attributes=True)
 
+
 class GenreRead(BaseModel):
     genre_id: int
     genre_name: str
     model_config = ConfigDict(from_attributes=True)
+
 
 class ContentRead(BaseModel):
     content_id: int
@@ -43,6 +51,7 @@ class ContentRead(BaseModel):
     copyright_holders: List[CopyrightHolderRead] = []
     tags: List[TagRead] = []
     model_config = ConfigDict(from_attributes=True)
+
 
 class ContentCreate(BaseModel):
     content_name: str

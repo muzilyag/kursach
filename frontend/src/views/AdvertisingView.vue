@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ApiService } from '../services/api'
 import { Config } from '../config'
-import type { IAdvertising, IAdvertisingCreate, IContent, ITag } from '../services/api'
+import type { IAdvertising, IAdvertisingCreate, ITag } from '../services/api'
 import { Utils } from '../utils'
 import { useDataTable } from '../composables/useDataTable'
 import DataTable from '../components/DataTable.vue'
@@ -17,7 +17,6 @@ const columns = [
   { key: 'is_active', label: 'Статус' }
 ]
 
-const contentList = ref<IContent[]>([])
 const tagsList = ref<ITag[]>([])
 const showModal = ref(false)
 const isEditing = ref(false)
@@ -40,7 +39,13 @@ const validateTime = (field: 'h' | 'm' | 's') => {
 
 const { items, total, params, pages, load, handleSort } = useDataTable(
   (p) => ApiService.getAdvertising(p),
-  { sort: 'advertising_id', order: 'desc', limit: Config.pagination.itemsPerPage, owner: '' }
+  { 
+    sort: 'advertising_id', 
+    order: 'desc', 
+    limit: Config.pagination.itemsPerPage, 
+    owner: '',
+    show_expired: false
+  }
 )
 
 const form = reactive<IAdvertisingCreate>({
@@ -122,11 +127,7 @@ const deleteItem = async (item: IAdvertising) => {
 onMounted(async () => {
   load()
   try {
-    const [c, t] = await Promise.all([
-      ApiService.getContent({ limit: 1000 }),
-      ApiService.getTagsDirect({ limit: 1000 })
-    ])
-    contentList.value = c.items
+    const t = await ApiService.getTagsDirect({ limit: 1000 })
     tagsList.value = t.items
   } catch {}
 })
@@ -143,15 +144,30 @@ onMounted(async () => {
 
     <div class="card shadow-sm border-0">
       <div class="card-header bg-white p-3">
-        <div class="input-group w-25">
-          <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
-          <input
-            v-model="params.owner"
-            @input="load"
-            type="text"
-            class="form-control bg-light border-start-0"
-            placeholder="Поиск по заказчику..."
-          />
+        <div class="d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-3">
+            <div class="input-group" style="width: 250px">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+              <input
+                v-model="params.owner"
+                @input="load"
+                type="text"
+                class="form-control bg-light border-start-0"
+                placeholder="Поиск по заказчику..."
+              />
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="expiredAdsSwitch"
+                v-model="params.show_expired"
+              />
+              <label class="form-check-label small text-muted" for="expiredAdsSwitch">
+                Показать истёкшие
+              </label>
+            </div>
+          </div>
         </div>
       </div>
       <div class="card-body p-0">
@@ -266,37 +282,11 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div class="col-12 mt-4 mb-2">
-          <div class="p-4 border rounded bg-light text-center border-dashed position-relative">
-            <i class="bi bi-image fs-1 text-muted opacity-50 mb-2"></i>
-            <h6 class="text-muted fw-bold mb-1">Загрузка медиа временно мокается</h6>
-            <small class="text-muted">Реальная загрузка файлов будет реализована позже.</small>
-          </div>
-        </div>
-
         <div class="col-12 mt-2">
           <h6 class="fw-bold border-bottom pb-2">Таргетинг показа</h6>
         </div>
 
-        <div class="col-md-6">
-          <label class="form-label small fw-bold">Привязка к контенту</label>
-          <div class="border rounded p-2 bg-white form-control checkbox-list-container">
-            <div class="form-check mb-1" v-for="c in contentList" :key="c.content_id">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                :value="c.content_id"
-                :id="'content-' + c.content_id"
-                v-model="form.content_ids"
-              />
-              <label class="form-check-label small" :for="'content-' + c.content_id">
-                {{ c.content_name }}
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-6">
+        <div class="col-12">
           <label class="form-label small fw-bold">Привязка к тегам</label>
           <div class="border rounded p-2 bg-white form-control checkbox-list-container">
             <div class="form-check mb-1" v-for="t in tagsList" :key="t.tag_id">
@@ -335,9 +325,5 @@ input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
-}
-.border-dashed {
-  border-style: dashed !important;
-  border-width: 2px !important;
 }
 </style>
