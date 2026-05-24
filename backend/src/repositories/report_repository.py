@@ -1,36 +1,42 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+from sqlalchemy import text, bindparam
 from datetime import date
+from typing import List, Optional
 
 
 class ReportRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_seasonality_report(self, year: int):
+    async def get_seasonality_report(self, start_month: str, end_month: str):
         query = text("""
-            WITH RECURSIVE months AS (
-                SELECT 1 as m UNION ALL SELECT m + 1 FROM months WHERE m < 12
+            WITH month_series AS (
+                SELECT generate_series(
+                    TO_DATE(:start_month, 'YYYY-MM'),
+                    TO_DATE(:end_month, 'YYYY-MM'),
+                    '1 month'::interval
+                )::date AS m
             ),
             all_genres AS (
                 SELECT genre_id, genre_name FROM Genre
             ),
             calendar_grid AS (
-                SELECT m, genre_id, genre_name FROM months CROSS JOIN all_genres
+                SELECT m, genre_id, genre_name FROM month_series CROSS JOIN all_genres
             ),
             stats AS (
                 SELECT 
-                    EXTRACT(MONTH FROM v.viewing_start) as m,
+                    DATE_TRUNC('month', v.viewing_start)::date as m,
                     i.genre_id,
                     COUNT(*) as cnt
                 FROM Viewing v
                 JOIN "Is" i ON v.content_id = i.content_id
-                WHERE EXTRACT(YEAR FROM v.viewing_start) = :year
-                GROUP BY m, i.genre_id
+                WHERE v.viewing_start >= TO_DATE(:start_month, 'YYYY-MM') 
+                  AND v.viewing_start < TO_DATE(:end_month, 'YYYY-MM') + INTERVAL '1 month'
+                GROUP BY 1, i.genre_id
             )
             SELECT 
-                TRIM(TO_CHAR(TO_DATE(cg.m::text, 'MM'), 'Month')) as month_name,
-                cg.m as month_num,
+                TO_CHAR(cg.m, 'YYYY-MM') as month_name,
+                cg.m as month_date,
                 cg.genre_name,
                 COALESCE(s.cnt, 0) as views_count
             FROM calendar_grid cg
@@ -38,14 +44,16 @@ class ReportRepository:
             ORDER BY cg.m, cg.genre_name;
         """)
 
-        result = await self.session.execute(query, {"year": year})
+        result = await self.session.execute(
+            query, {"start_month": start_month, "end_month": end_month}
+        )
         rows = result.mappings().all()
 
         report_data = {}
         for row in rows:
             m_name = row["month_name"]
             if m_name not in report_data:
-                report_data[m_name] = {"month": m_name, "_order": row["month_num"]}
+                report_data[m_name] = {"month": m_name, "_order": row["month_date"]}
             report_data[m_name][row["genre_name"]] = row["views_count"]
 
         sorted_report = sorted(report_data.values(), key=lambda x: x["_order"])
@@ -54,8 +62,8 @@ class ReportRepository:
 
         return sorted_report
 
-    async def get_activity_report(self):
-        query = text("""
+    async def get_activity_report(self, subscribe_type_ids: Optional[List[int]] = None):
+        sql = """
             WITH sub_activity AS (
                 SELECT 
                     s.subscribe_type_id,
@@ -71,10 +79,20 @@ class ReportRepository:
                 COALESCE(SUM(sa.unique_content), 0) AS "Unique Content"
             FROM Subscribe_type st
             LEFT JOIN sub_activity sa ON st.subscribe_type_id = sa.subscribe_type_id
-            GROUP BY st.subscribe_type_name
-            ORDER BY "Unique Content" DESC;
-        """)
-        result = await self.session.execute(query)
+        """
+        
+        params = {}
+        if subscribe_type_ids:
+            sql += " WHERE st.subscribe_type_id IN :sub_ids"
+            params["sub_ids"] = subscribe_type_ids
+
+        sql += ' GROUP BY st.subscribe_type_name ORDER BY "Unique Content" DESC;'
+
+        query = text(sql)
+        if subscribe_type_ids:
+            query = query.bindparams(bindparam("sub_ids", expanding=True))
+
+        result = await self.session.execute(query, params)
         return [dict(row) for row in result.mappings().all()]
 
     async def get_revenue_report(self, start_date: date, end_date: date):

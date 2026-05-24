@@ -211,7 +211,7 @@ describe('ApiService', () => {
       await ApiService.getCopyrightHoldersDirect()
       await ApiService.getSubscriptions({})
       await ApiService.getSubscriptionTypes()
-      await ApiService.getSeasonalityReport(2023)
+      await ApiService.getSeasonalityReport('2023-01', '2023-12')
       await ApiService.getActivityReport()
       await ApiService.getRevenueReport('2023-01-01', '2023-12-31')
       await ApiService.getContentProgress(1)
@@ -261,7 +261,7 @@ describe('ApiService', () => {
     })
 
     it('Успешно выполняет запросы requestBlob', async () => {
-      await ApiService.exportSeasonalityReport(2023, 'pdf')
+      await ApiService.exportSeasonalityReport('2023-01', '2023-12', 'pdf')
       await ApiService.exportActivityReport('csv')
       await ApiService.exportRevenueReport('2023-01-01', '2023-12-31', 'pdf')
       

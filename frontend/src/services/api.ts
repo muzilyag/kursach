@@ -442,12 +442,12 @@ export const ApiService = {
         });
     },
 
-    async getSeasonalityReport(year: number): Promise<ISeasonalityReport[]> {
-        return this.request(`${Config.api.reports}/seasonality?year=${year}`);
+    async getSeasonalityReport(startMonth: string, endMonth: string): Promise<ISeasonalityReport[]> {
+        return this.request(`${Config.api.reports}/seasonality?start_month=${startMonth}&end_month=${endMonth}`);
     },
 
-    async exportSeasonalityReport(year: number, format: 'csv' | 'pdf'): Promise<Blob> {
-        return this.requestBlob(`${Config.api.reports}/seasonality?year=${year}&export=true&format=${format}`);
+    async exportSeasonalityReport(startMonth: string, endMonth: string, format: 'csv' | 'pdf'): Promise<Blob> {
+        return this.requestBlob(`${Config.api.reports}/seasonality?start_month=${startMonth}&end_month=${endMonth}&export=true&format=${format}`);
     },
 
     async getActivityReport(): Promise<IActivityReport[]> {
