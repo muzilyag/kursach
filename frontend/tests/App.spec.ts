@@ -68,7 +68,6 @@ describe('Компонент App.vue', () => {
     await flushPromises()
 
     expect(console.error).toHaveBeenCalled()
-    // Компонент не должен падать, просто данные не загрузятся
     expect(wrapper.find('.mock-sidebar').exists()).toBe(true)
   })
 

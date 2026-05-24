@@ -96,8 +96,7 @@ describe('Компонент SubscriptionsView.vue', () => {
     vi.clearAllMocks()
 
     const dataTable = wrapper.findComponent({ name: 'DataTable' })
-    dataTable.vm.$emit('actions', mockSubs.items[0]) // эмуляция, в реале там слоты, вызовем функцию напрямую или через заглушку
-    // Так как у нас нет доступа к слоту в shallow mount, вызовем метод компонента напрямую:
+    dataTable.vm.$emit('actions', mockSubs.items[0])
     await (wrapper.vm as any).cancelSub(mockSubs.items[0])
     await flushPromises()
 
@@ -131,10 +130,8 @@ describe('Компонент SubscriptionsView.vue', () => {
     const wrapper = mount(SubscriptionsView, { global: globalOptions })
     await flushPromises()
 
-    await wrapper.find('.btn-primary').trigger('click') // Открыть модалку
+    await wrapper.find('.btn-primary').trigger('click')
     await flushPromises()
-
-    // Имитируем отправку формы
     await (wrapper.vm as any).submitForm()
     await flushPromises()
 
