@@ -53,7 +53,13 @@ const visiblePages = computed(() => {
     <nav v-if="pages.length > 1">
       <ul class="pagination pagination-sm m-0 shadow-sm">
         <li class="page-item" :class="{ disabled: currentPage === 1 }">
-          <button class="page-link" @click="$emit('update:page', currentPage - 1)">«</button>
+          <button 
+            class="page-link" 
+            :disabled="currentPage === 1"
+            @click="$emit('update:page', currentPage - 1)"
+          >
+            «
+          </button>
         </li>
         <li
           v-for="(p, index) in visiblePages"
@@ -62,12 +68,23 @@ const visiblePages = computed(() => {
           :class="{ active: p === currentPage, disabled: p === '...' }"
         >
           <span v-if="p === '...'" class="page-link">...</span>
-          <button v-else class="page-link" @click="$emit('update:page', p as number)">
+          <button 
+            v-else 
+            class="page-link" 
+            :disabled="p === currentPage"
+            @click="$emit('update:page', p as number)"
+          >
             {{ p }}
           </button>
         </li>
-        <li class="page-item" :class="{ disabled: currentPage === pages[pages.length - 1] }">
-          <button class="page-link" @click="$emit('update:page', currentPage + 1)">»</button>
+        <li class="page-item" :class="{ disabled: currentPage === pages[pages.length - 1] || total === 0 }">
+          <button 
+            class="page-link" 
+            :disabled="currentPage === pages[pages.length - 1] || total === 0"
+            @click="$emit('update:page', currentPage + 1)"
+          >
+            »
+          </button>
         </li>
       </ul>
     </nav>

@@ -11,30 +11,49 @@ export const Utils = {
   },
 
   calculateAge(birthDateString: string): number {
-    const birthDate = new Date(birthDateString)
-    const today = new Date()
-    let age = today.getFullYear() - birthDate.getFullYear()
-    const monthDiff = today.getMonth() - birthDate.getMonth()
+    if (!birthDateString) return 0
+    const birth = new Date(birthDateString)
+    if (isNaN(birth.getTime())) return 0
 
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    
+    const m = today.getMonth() - birth.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
       age--
     }
-    return age
+
+    return age < 0 ? 0 : age
   },
 
   formatDuration(duration: string): string {
-    if (!duration) return '---'
-    const parts = duration.split(':')
-    const h = parseInt(parts[0] ?? '', 10) || 0
-    const m = parseInt(parts[1] ?? '', 10) || 0
-    const s = parseInt(parts[2] ?? '', 10) || 0
+    if (!duration || typeof duration !== 'string') return '---'
+
+    if (!/^(\d+)(:\d+){0,2}$/.test(duration)) {
+      return '---'
+    }
+
+    const parts = duration.split(':').map(Number)
+    
+    let h = 0, m = 0, s = 0
+
+    if (parts.length === 3) {
+      h = parts[0] ?? 0
+      m = parts[1] ?? 0
+      s = parts[2] ?? 0
+    } else if (parts.length === 2) {
+      h = parts[0] ?? 0
+      m = parts[1] ?? 0
+    } else if (parts.length === 1) {
+      h = parts[0] ?? 0
+    }
 
     const result = []
     if (h > 0) result.push(`${h}ч`)
     if (m > 0) result.push(`${m}мин`)
-    if (s > 0 || (h === 0 && m === 0)) result.push(`${s}сек`)
+    if (s > 0) result.push(`${s}сек`)
 
-    return result.join(' ')
+    return result.length > 0 ? result.join(' ') : '---'
   },
 
   getDateDaysAgo(days: number): string {
@@ -44,7 +63,14 @@ export const Utils = {
   },
 
   isValidEmail(email: string): boolean {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    if (!email || typeof email !== 'string') return false
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+    if (!emailRegex.test(email)) return false
+    
+    if (email.includes('..')) return false
+    
+    return true
   },
 
   downloadFile(blob: Blob, filename: string) {
@@ -62,6 +88,7 @@ export const Utils = {
     return new Intl.NumberFormat('ru-RU', {
       style: 'currency',
       currency: 'RUB',
+      minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(value)
   }

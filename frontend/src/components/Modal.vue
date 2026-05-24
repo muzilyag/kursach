@@ -1,14 +1,30 @@
 <script setup lang="ts">
-defineProps<{
+import { onMounted, onUnmounted } from 'vue'
+
+const props = defineProps<{
   show: boolean
   title: string
 }>()
 
-defineEmits(['close'])
+const emit = defineEmits(['close'])
+
+const handleKeydown = (e: KeyboardEvent) => {
+  if (props.show && e.key === 'Escape') {
+    emit('close')
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
 <template>
-  <div v-if="show">
+  <div v-if="show" @keydown.esc="$emit('close')" tabindex="-1">
     <div class="modal-backdrop fade show"></div>
     <div class="modal fade show d-block" tabindex="-1" @click.self="$emit('close')">
       <div class="modal-dialog">

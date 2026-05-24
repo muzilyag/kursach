@@ -10,6 +10,7 @@ const fetchStats = async () => {
   try {
     stats.value = await ApiService.getStats()
   } catch (e: any) {
+    console.error(e)
     errorMessage.value = e.message || 'Ошибка загрузки статистики'
   } finally {
     isLoading.value = false

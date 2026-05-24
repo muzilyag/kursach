@@ -18,12 +18,14 @@ const handleLogin = async () => {
   try {
     await ApiService.login(form)
     const role = ApiService.getRoleFromToken()
-    if (role === 'user') {
-      router.push('/catalog')
+    if (role === 'superadmin') {
+      router.push('/users')
+    } else if (role === 'admin') {
+      router.push('/dashboard')
     } else if (role === 'content_manager') {
       router.push('/content')
     } else {
-      router.push('/')
+      router.push('/catalog')
     }
   } catch (e: any) {
     error.value = e.message

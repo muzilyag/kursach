@@ -168,7 +168,9 @@ onMounted(async () => {
     genresList.value = g
     tagsList.value = t
     holdersList.value = h
-  } catch {}
+  } catch (e: any) {
+    alert(e.message)
+  }
 })
 </script>
 

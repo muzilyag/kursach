@@ -8,7 +8,7 @@
             v-for="col in columns"
             :key="col.key"
             :class="{ sortable: col.sortable }"
-            @click="col.sortable && $emit('sort', col.key)"
+            @click="() => { if (col.sortable) $emit('sort', col.key) }"
           >
             {{ col.label }}
             <i v-if="col.sortable" class="bi ms-1" :class="getSortIcon(col.key)"></i>

@@ -235,7 +235,7 @@ onUnmounted(() => {
     </div>
 
     <div
-      class="card border-0 shadow-sm mb-4 p-3"
+      class="border-0 shadow-sm mb-4 p-3"
       style="background-color: var(--card-bg); border-radius: 16px"
     >
       <div class="row g-3 align-items-center">
