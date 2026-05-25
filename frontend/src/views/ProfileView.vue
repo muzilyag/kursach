@@ -85,7 +85,7 @@ const handleCancelSubscription = async () => {
       await ApiService.cancelSubscription(
         user.value.user_id,
         user.value.active_subscription.subscribe_type_id,
-        user.value.active_subscription.subscribe_finish
+        user.value.active_subscription.subscribe_start
       )
       alert('Подписка успешно отменена!')
       await loadProfile()

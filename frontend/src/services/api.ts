@@ -3,6 +3,7 @@ import { Config } from '../config';
 export interface IActiveSubscription {
     subscribe_type_id: number;
     subscribe_type_name: string;
+    subscribe_start: string;
     subscribe_finish: string;
     status: string;
 }

@@ -6,6 +6,7 @@ from typing import Optional, Literal
 class UserActiveSubSchema(BaseModel):
     subscribe_type_id: int
     subscribe_type_name: str
+    subscribe_start: date
     subscribe_finish: date
     status: str
 

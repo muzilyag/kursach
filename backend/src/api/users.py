@@ -76,6 +76,7 @@ async def get_me(
         response_data["active_subscription"] = {
             "subscribe_type_id": sub.subscribe_type_id,
             "subscribe_type_name": sub.subscribe_type.subscribe_type_name,
+            "subscribe_start": sub.subscribe_start,
             "subscribe_finish": sub.subscribe_finish,
             "status": "Активна",
         }

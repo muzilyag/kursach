@@ -21,7 +21,7 @@ const handleLogin = async () => {
     if (role === 'superadmin') {
       router.push('/users')
     } else if (role === 'admin') {
-      router.push('/dashboard')
+      router.push('admin/dashboard')
     } else if (role === 'content_manager') {
       router.push('/content')
     } else {
