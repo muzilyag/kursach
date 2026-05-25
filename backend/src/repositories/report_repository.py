@@ -3,7 +3,6 @@ from sqlalchemy import text, bindparam
 from datetime import date
 from typing import List, Optional
 
-
 class ReportRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -64,21 +63,12 @@ class ReportRepository:
 
     async def get_activity_report(self, subscribe_type_ids: Optional[List[int]] = None):
         sql = """
-            WITH sub_activity AS (
-                SELECT 
-                    s.subscribe_type_id,
-                    AVG(EXTRACT(EPOCH FROM (v.viewing_finish - v.viewing_start)) / 60) as avg_time,
-                    COUNT(DISTINCT v.content_id) as unique_content
-                FROM Subscribe s
-                JOIN Viewing v ON s.user_id = v.user_id
-                GROUP BY s.subscribe_type_id
-            )
             SELECT 
                 st.subscribe_type_name AS "Subscription",
                 COALESCE(ROUND(AVG(sa.avg_time)::numeric, 1), 0) AS "Avg Time (min)",
                 COALESCE(SUM(sa.unique_content), 0) AS "Unique Content"
             FROM Subscribe_type st
-            LEFT JOIN sub_activity sa ON st.subscribe_type_id = sa.subscribe_type_id
+            LEFT JOIN v_subscription_activity sa ON st.subscribe_type_id = sa.subscribe_type_id
         """
         
         params = {}
@@ -86,7 +76,7 @@ class ReportRepository:
             sql += " WHERE st.subscribe_type_id IN :sub_ids"
             params["sub_ids"] = subscribe_type_ids
 
-        sql += ' GROUP BY st.subscribe_type_name ORDER BY "Unique Content" DESC;'
+        sql += " GROUP BY st.subscribe_type_name ORDER BY \"Unique Content\" DESC;"
 
         query = text(sql)
         if subscribe_type_ids:
@@ -108,8 +98,8 @@ class ReportRepository:
             period_payments AS (
                 SELECT 
                     subscribe_type_id as sub_id, 
-                    SUM(payment_sum) as total_rev
-                FROM Payment
+                    SUM(daily_revenue) as total_rev
+                FROM v_daily_revenue
                 WHERE payment_date >= :start_date AND payment_date <= :end_date
                 GROUP BY subscribe_type_id
             )

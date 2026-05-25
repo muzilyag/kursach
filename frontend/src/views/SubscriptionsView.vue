@@ -84,7 +84,11 @@ const openModal = async (isCreate: boolean, sub: ISubscription | null = null) =>
   if (isCreate) {
     try {
       const res = await ApiService.getFilteredUsers({ has_active: false })
-      availableUsers.value = res
+      availableUsers.value = res.filter((u: IUser) => {
+        const fullUser = usersList.value.find(x => x.user_id === u.user_id)
+        const role = fullUser?.user_role || u.user_role || 'user'
+        return role === 'user'
+      })
     } catch (e) {
       console.error(e)
     }
@@ -286,7 +290,7 @@ onMounted(async () => {
             </option>
           </select>
           <div v-if="availableUsers && availableUsers.length === 0" class="form-text text-danger">
-            Нет доступных пользователей без активных подписок.
+            Нет доступных пользователей (клиентов) без активных подписок.
           </div>
         </div>
         <div v-else class="mb-3">

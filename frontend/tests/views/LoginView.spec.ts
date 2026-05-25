@@ -99,7 +99,7 @@ describe('Компонент LoginView.vue', () => {
     await wrapper.find('input[type="password"]').setValue('123123')
     await wrapper.find('form').trigger('submit.prevent')
 
-    expect(mockPush).toHaveBeenCalledWith('/dashboard')
+    expect(mockPush).toHaveBeenCalledWith('admin/dashboard')
   })
 
   it('Редиректит в каталог по умолчанию, если роль не определена', async () => {

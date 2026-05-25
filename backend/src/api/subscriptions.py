@@ -250,6 +250,12 @@ async def get_subscriptions(
 async def create_subscription(
     data: SubscriptionCreate, db: AsyncSession = Depends(get_db)
 ):
+    target_user = await db.get(User, data.user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    if target_user.user_role in ["admin", "superadmin", "content_manager"]:
+        raise HTTPException(status_code=403, detail="Сотрудникам платформы подписка не требуется")
+
     active_sub_check = await db.execute(
         select(1).where(
             and_(
@@ -329,6 +335,10 @@ async def create_subscription(
 async def change_subscription(
     data: SubscriptionChange, db: AsyncSession = Depends(get_db)
 ):
+    target_user = await db.get(User, data.user_id)
+    if target_user and target_user.user_role in ["admin", "superadmin", "content_manager"]:
+        raise HTTPException(status_code=403, detail="Сотрудникам платформы подписка не требуется")
+
     try:
         await db.execute(
             text("CALL change_subscription_type(:u_id, :t_id, :p_method)"),
@@ -355,6 +365,10 @@ async def update_subscription(
     data: SubscriptionUpdate,
     db: AsyncSession = Depends(get_db),
 ):
+    target_user = await db.get(User, user_id)
+    if target_user and target_user.user_role in ["admin", "superadmin", "content_manager"]:
+        raise HTTPException(status_code=403, detail="Сотрудникам платформы подписка не требуется")
+
     query = select(Subscribe).where(
         and_(
             Subscribe.user_id == user_id,
@@ -402,6 +416,9 @@ async def buy_subscription_self_service(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if current_user.user_role in ["admin", "superadmin", "content_manager"]:
+        raise HTTPException(status_code=403, detail="Сотрудникам платформы подписка не требуется")
+
     active_sub_stmt = (
         select(Subscribe)
         .where(
