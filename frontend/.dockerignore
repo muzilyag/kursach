@@ -1,0 +1,16 @@
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.*
+.eslintrc.cjs
+.prettierrc.json
+eslint.config.js
+vitest.config.ts
+TESTING.md
+LINTER.md
+coverage/
+tests/
+README.md

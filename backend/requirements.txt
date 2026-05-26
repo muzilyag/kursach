@@ -4,7 +4,6 @@ sqlalchemy
 asyncpg
 pydantic
 pydantic-settings
-alembic
 python-dotenv
 email-validator
 flake8

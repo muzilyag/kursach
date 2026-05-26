@@ -1,0 +1,16 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+.pytest_cache/
+.coverage
+.coveragerc
+pytest.ini
+TESTING.md
+LINTER.md
+db/crebas.sql
+tests/
