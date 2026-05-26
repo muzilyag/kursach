@@ -15,11 +15,6 @@ const form = reactive({
   user_role: 'user'
 })
 
-const roles = [
-  { value: 'user', label: 'Обычный пользователь' },
-  { value: 'content_manager', label: 'Контент-менеджер' }
-]
-
 const handleRegister = async () => {
   loading.value = true
   error.value = ''
@@ -68,14 +63,6 @@ const handleRegister = async () => {
           />
         </div>
         <div class="mb-3">
-          <label class="form-label small fw-bold text-uppercase">Роль в системе</label>
-          <select v-model="form.user_role" class="form-select shadow-none">
-            <option v-for="role in roles" :key="role.value" :value="role.value">
-              {{ role.label }}
-            </option>
-          </select>
-        </div>
-        <div class="mb-3">
           <label class="form-label small fw-bold text-uppercase">Дата рождения</label>
           <input
             v-model="form.user_birth_date"
@@ -94,7 +81,7 @@ const handleRegister = async () => {
             placeholder="strongpassword123"
           />
         </div>
-        <button type="submit" class="btn btn-success w-100 py-2 fw-bold" :disabled="loading">
+        <button type="submit" class="btn btn-success w-100 py-2 fw-bold shadow-none" :disabled="loading" style="background-color: var(--sidebar-primary); border: none;">
           <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
           Создать аккаунт
         </button>
@@ -103,7 +90,7 @@ const handleRegister = async () => {
       <div class="text-center mt-4">
         <p class="small text-muted mb-0">
           Уже есть аккаунт?
-          <router-link to="/login" class="text-decoration-none fw-bold">Войти</router-link>
+          <router-link to="/login" class="text-decoration-none fw-bold" style="color: var(--sidebar-primary);">Войти</router-link>
         </p>
       </div>
     </div>
