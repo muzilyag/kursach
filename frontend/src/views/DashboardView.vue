@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { ApiService } from '../services/api'
+import StatCard from '../components/StatCard.vue'
 
 const stats = ref<any | null>(null)
 const isLoading = ref(true)
@@ -97,125 +98,70 @@ onMounted(fetchStats)
     <div v-else-if="stats">
       <div class="row g-4 mb-4">
         <div class="col-12 col-sm-6 col-xl-3">
-          <div class="card border-0 shadow-sm h-100 p-3" style="background-color: var(--card-bg)">
-            <div class="d-flex align-items-center">
-              <div
-                class="badge p-3 me-3"
-                style="background-color: rgba(139, 115, 85, 0.1); color: var(--sidebar-primary)"
-              >
-                <i class="bi bi-people fs-4"></i>
-              </div>
-              <div>
-                <h6 class="text-muted small mb-1 fw-bold">Пользователи</h6>
-                <h3 class="m-0 fw-bold" style="color: var(--text-darker)">
-                  {{ stats.total_users }}
-                </h3>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title="Пользователи"
+            :value="stats.total_users"
+            icon="bi bi-people"
+            icon-bg-color="rgba(139, 115, 85, 0.1)"
+            icon-color="var(--sidebar-primary)"
+          />
         </div>
 
         <div class="col-12 col-sm-6 col-xl-3">
-          <div class="card border-0 shadow-sm h-100 p-3" style="background-color: var(--card-bg)">
-            <div class="d-flex align-items-center">
-              <div
-                class="badge p-3 me-3"
-                style="background-color: rgba(40, 167, 69, 0.1); color: #28a745"
-              >
-                <i class="bi bi-cash-coin fs-4"></i>
-              </div>
-              <div>
-                <h6 class="text-muted small mb-1 fw-bold">Общая выручка</h6>
-                <h3 class="m-0 fw-bold" style="color: var(--text-darker)">
-                  {{ parseFloat(stats.total_revenue).toLocaleString() }} ₽
-                </h3>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title="Общая выручка"
+            :value="parseFloat(stats.total_revenue).toLocaleString() + ' ₽'"
+            icon="bi bi-cash-coin"
+            icon-bg-color="rgba(40, 167, 69, 0.1)"
+            icon-color="#28a745"
+          />
         </div>
 
         <div class="col-12 col-sm-6 col-xl-3">
-          <div class="card border-0 shadow-sm h-100 p-3" style="background-color: var(--card-bg)">
-            <div class="d-flex align-items-center">
-              <div
-                class="badge p-3 me-3"
-                style="background-color: rgba(0, 123, 255, 0.1); color: #007bff"
-              >
-                <i class="bi bi-collection-play fs-4"></i>
-              </div>
-              <div>
-                <h6 class="text-muted small mb-1 fw-bold">Медиаконтент</h6>
-                <h3 class="m-0 fw-bold" style="color: var(--text-darker)">
-                  {{ stats.total_content }}
-                </h3>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title="Медиаконтент"
+            :value="stats.total_content"
+            icon="bi bi-collection-play"
+            icon-bg-color="rgba(0, 123, 255, 0.1)"
+            icon-color="#007bff"
+          />
         </div>
 
         <div class="col-12 col-sm-6 col-xl-3">
-          <div class="card border-0 shadow-sm h-100 p-3" style="background-color: var(--card-bg)">
-            <div class="d-flex align-items-center">
-              <div
-                class="badge p-3 me-3"
-                style="background-color: rgba(255, 193, 7, 0.1); color: #ffc107"
-              >
-                <i class="bi bi-eye fs-4"></i>
-              </div>
-              <div>
-                <h6 class="text-muted small mb-1 fw-bold">Всего просмотров</h6>
-                <h3 class="m-0 fw-bold" style="color: var(--text-darker)">
-                  {{ stats.total_viewings }}
-                </h3>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title="Всего просмотров"
+            :value="stats.total_viewings"
+            icon="bi bi-eye"
+            icon-bg-color="rgba(255, 193, 7, 0.1)"
+            icon-color="#ffc107"
+          />
         </div>
       </div>
 
       <div class="row g-4 mb-4">
         <div class="col-12 col-md-4">
-          <div class="card border-0 shadow-sm p-3 h-100" style="background-color: var(--card-bg)">
-            <div class="d-flex align-items-center">
-              <div class="badge p-2 me-3 bg-light text-dark">
-                <i class="bi bi-bookmark-star fs-5"></i>
-              </div>
-              <div>
-                <h6 class="text-muted small mb-0 fw-bold">Доступные жанры</h6>
-                <h4 class="m-0 fw-bold mt-1" style="color: var(--text-darker)">
-                  {{ stats.total_genres }}
-                </h4>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            size="md"
+            title="Доступные жанры"
+            :value="stats.total_genres"
+            icon="bi bi-bookmark-star"
+          />
         </div>
         <div class="col-12 col-md-4">
-          <div class="card border-0 shadow-sm p-3 h-100" style="background-color: var(--card-bg)">
-            <div class="d-flex align-items-center">
-              <div class="badge p-2 me-3 bg-light text-dark"><i class="bi bi-tags fs-5"></i></div>
-              <div>
-                <h6 class="text-muted small mb-0 fw-bold">Поисковые теги</h6>
-                <h4 class="m-0 fw-bold mt-1" style="color: var(--text-darker)">
-                  {{ stats.total_tags }}
-                </h4>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            size="md"
+            title="Поисковые теги"
+            :value="stats.total_tags"
+            icon="bi bi-tags"
+          />
         </div>
         <div class="col-12 col-md-4">
-          <div class="card border-0 shadow-sm p-3 h-100" style="background-color: var(--card-bg)">
-            <div class="d-flex align-items-center">
-              <div class="badge p-2 me-3 bg-light text-dark">
-                <i class="bi bi-shield-check fs-5"></i>
-              </div>
-              <div>
-                <h6 class="text-muted small mb-0 fw-bold">Правообладатели</h6>
-                <h4 class="m-0 fw-bold mt-1" style="color: var(--text-darker)">
-                  {{ stats.total_copyright_holders }}
-                </h4>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            size="md"
+            title="Правообладатели"
+            :value="stats.total_copyright_holders"
+            icon="bi bi-shield-check"
+          />
         </div>
       </div>
 

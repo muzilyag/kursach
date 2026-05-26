@@ -3,6 +3,7 @@ import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue'
 import { ApiService } from '../services/api'
 import type { IContent, IGenre, ITag, IAdvertising } from '../services/api'
 import Pagination from '../components/Pagination.vue'
+import MultiSelectDropdown from '../components/MultiSelectDropdown.vue'
 
 const movies = ref<IContent[]>([])
 const genres = ref<IGenre[]>([])
@@ -41,9 +42,6 @@ const pagesArray = computed(() => {
   }
   return arr
 })
-
-const selectedTagsCount = computed(() => params.tag_ids.length)
-const selectedGenresCount = computed(() => params.genre_ids.length)
 
 const loadFilters = async () => {
   try {
@@ -247,7 +245,7 @@ onUnmounted(() => {
             <input
               v-model="searchQuery"
               type="text"
-              class="form-control border-0 bg-transparent ps-0"
+              class="form-control border-0 bg-transparent ps-0 shadow-none"
               placeholder="Найти фильм или сериал..."
               style="color: var(--text-darker)"
             />
@@ -255,95 +253,31 @@ onUnmounted(() => {
         </div>
 
         <div class="col-12 col-md-4 col-lg-3">
-          <div class="dropdown w-100">
-            <button
-              class="btn w-100 text-start dropdown-toggle d-flex justify-content-between align-items-center"
-              type="button"
-              data-bs-toggle="dropdown"
-              data-bs-auto-close="outside"
-              style="
-                background-color: var(--body-bg);
-                color: var(--text-darker);
-                border-radius: 10px;
-                border: none;
-              "
-            >
-              <span>{{
-                selectedGenresCount > 0 ? `Жанры (${selectedGenresCount})` : 'Выбрать жанры'
-              }}</span>
-            </button>
-            <div
-              class="dropdown-menu p-3 shadow-lg border-0 mt-2"
-              style="width: 280px; max-height: 350px; overflow-y: auto; border-radius: 12px"
-            >
-              <div
-                v-for="genre in genres"
-                :key="genre.genre_id"
-                class="form-check mb-2 custom-check"
-              >
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  :id="'genre-' + genre.genre_id"
-                  :value="genre.genre_id"
-                  v-model="params.genre_ids"
-                />
-                <label class="form-check-label w-100" :for="'genre-' + genre.genre_id">
-                  {{ genre.genre_name }}
-                </label>
-              </div>
-              <div v-if="genres.length === 0" class="text-center py-2 text-muted small">
-                Жанры не найдены
-              </div>
-            </div>
-          </div>
+          <MultiSelectDropdown
+            label="Жанры"
+            v-model="params.genre_ids"
+            :items="genres"
+            value-key="genre_id"
+            label-key="genre_name"
+            empty-text="Жанры не найдены"
+          />
         </div>
 
         <div class="col-12 col-md-4 col-lg-3">
-          <div class="dropdown w-100">
-            <button
-              class="btn w-100 text-start dropdown-toggle d-flex justify-content-between align-items-center"
-              type="button"
-              data-bs-toggle="dropdown"
-              data-bs-auto-close="outside"
-              style="
-                background-color: var(--body-bg);
-                color: var(--text-darker);
-                border-radius: 10px;
-                border: none;
-              "
-            >
-              <span>{{
-                selectedTagsCount > 0 ? `Теги (${selectedTagsCount})` : 'Выбрать теги'
-              }}</span>
-            </button>
-            <div
-              class="dropdown-menu p-3 shadow-lg border-0 mt-2"
-              style="width: 280px; max-height: 350px; overflow-y: auto; border-radius: 12px"
-            >
-              <div v-for="tag in tags" :key="tag.tag_id" class="form-check mb-2 custom-check">
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  :id="'tag-' + tag.tag_id"
-                  :value="tag.tag_id"
-                  v-model="params.tag_ids"
-                />
-                <label class="form-check-label w-100" :for="'tag-' + tag.tag_id">
-                  {{ tag.tag_name }}
-                </label>
-              </div>
-              <div v-if="tags.length === 0" class="text-center py-2 text-muted small">
-                Теги не найдены
-              </div>
-            </div>
-          </div>
+          <MultiSelectDropdown
+            label="Теги"
+            v-model="params.tag_ids"
+            :items="tags"
+            value-key="tag_id"
+            label-key="tag_name"
+            empty-text="Теги не найдены"
+          />
         </div>
 
         <div class="col-12 col-md-4 col-lg-2">
           <button
             @click="resetFilters"
-            class="btn w-100 fw-bold"
+            class="btn w-100 fw-bold shadow-none"
             style="
               background-color: var(--sidebar-bg);
               color: var(--sidebar-text-light);
@@ -457,7 +391,7 @@ onUnmounted(() => {
           </div>
           <button
             @click="closePlayer"
-            class="btn btn-link text-white text-decoration-none fs-4 p-0"
+            class="btn btn-link text-white text-decoration-none fs-4 p-0 shadow-none"
           >
             &times;
           </button>
@@ -469,7 +403,7 @@ onUnmounted(() => {
           <h2 class="text-white fw-bold mb-2">{{ adData?.advertising_name || 'Рекламная пауза' }}</h2>
           <p class="text-white-50 fs-5 mb-4">Спонсор показа: {{ adData?.advertising_owner || 'Неизвестно' }}</p>
           <button 
-            class="btn btn-light rounded-pill px-5 py-2 fw-bold" 
+            class="btn btn-light rounded-pill px-5 py-2 fw-bold shadow-none" 
             :disabled="skipCountdown > 0" 
             @click="skipAd"
           >
@@ -536,26 +470,12 @@ onUnmounted(() => {
   opacity: 0.9;
   transform: scale(1.02);
 }
-.custom-check .form-check-input:checked {
-  background-color: var(--sidebar-primary);
-  border-color: var(--sidebar-primary);
-}
-.custom-check .form-check-label {
-  cursor: pointer;
-  transition: color 0.2s;
-}
-.custom-check:hover .form-check-label {
-  color: var(--sidebar-primary);
-}
 .text-truncate-custom {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-.dropdown-toggle::after {
-  margin-left: auto;
 }
 
 .player-overlay {

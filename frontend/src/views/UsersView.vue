@@ -40,13 +40,6 @@ const userForm = reactive<IUserCreate & { user_id?: number; user_role: string; u
   user_password: ''
 })
 
-const roleLabels: Record<string, string> = {
-  superadmin: 'Суперадминистратор',
-  admin: 'Администратор',
-  content_manager: 'Контент-менеджер',
-  user: 'Пользователь'
-}
-
 const openModal = (user: IUser | null = null) => {
   if (user && user.user_role === 'superadmin') return
   if (user && user.user_role === 'admin' && currentUserRole.value !== 'superadmin') return
@@ -232,7 +225,7 @@ onMounted(() => {
                       : 'bg-secondary'
               "
             >
-              {{ roleLabels[item.user_role] || item.user_role }}
+              {{ Utils.getRoleLabel(item.user_role) }}
             </span>
           </template>
           <template #cell-user_birth_date="{ item }">

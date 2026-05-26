@@ -6,6 +6,8 @@ import type { ITag, IPopularTag } from '../services/api'
 import { useDataTable } from '../composables/useDataTable'
 import DataTable from '../components/DataTable.vue'
 import Pagination from '../components/Pagination.vue'
+import SidePanel from '../components/SidePanel.vue'
+import CheckboxList from '../components/CheckboxList.vue'
 
 const columns = [
   { key: 'tag_name', label: 'Название тега', sortable: true },
@@ -389,13 +391,11 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div v-if="isPanelOpen" class="panel-overlay" @click="closePanel"></div>
-    <div class="side-panel" :class="{ open: isPanelOpen }">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h5 class="mb-0 fw-bold">{{ isEditing ? 'Редактировать тег' : 'Добавить тег' }}</h5>
-        <button type="button" class="btn-close shadow-none" @click="closePanel"></button>
-      </div>
-
+    <SidePanel
+      :is-open="isPanelOpen"
+      :title="isEditing ? 'Редактировать тег' : 'Добавить тег'"
+      @close="closePanel"
+    >
       <form @submit.prevent="saveTag" class="d-flex flex-column h-100">
         <div class="flex-grow-1">
           <div class="mb-3">
@@ -410,21 +410,14 @@ onUnmounted(() => {
           </div>
           <div class="mb-3">
             <label class="form-label small fw-bold">Связанный контент</label>
-            <div class="border rounded p-2 bg-light form-control checkbox-list-container">
-              <div class="form-check mb-1" v-for="c in allContent" :key="c.content_id">
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  :value="c.content_id"
-                  :id="'tag-content-' + c.content_id"
-                  v-model="tagForm.content_ids"
-                />
-                <label class="form-check-label small" :for="'tag-content-' + c.content_id">
-                  {{ c.content_name }}
-                </label>
-              </div>
-              <div v-if="allContent.length === 0" class="text-muted small">Контент не найден</div>
-            </div>
+            <CheckboxList
+              v-model="tagForm.content_ids"
+              :items="allContent"
+              value-key="content_id"
+              label-key="content_name"
+              empty-text="Контент не найден"
+              max-height="65vh"
+            />
           </div>
         </div>
         
@@ -437,7 +430,7 @@ onUnmounted(() => {
           </button>
         </div>
       </form>
-    </div>
+    </SidePanel>
   </div>
 </template>
 
@@ -537,41 +530,5 @@ onUnmounted(() => {
 
 .smallest {
   font-size: 0.75rem;
-}
-
-.checkbox-list-container {
-  max-height: 65vh;
-  overflow-y: auto;
-}
-
-.panel-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(2px);
-  z-index: 1040;
-}
-
-.side-panel {
-  position: fixed;
-  top: 0;
-  right: -450px;
-  width: 450px;
-  height: 100vh;
-  background: #fff;
-  z-index: 1050;
-  transition: right 0.3s cubic-bezier(0.82, 0.085, 0.395, 0.895);
-  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
-  overflow-y: auto;
-  padding: 1.5rem 2rem;
-  display: flex;
-  flex-direction: column;
-}
-
-.side-panel.open {
-  right: 0;
 }
 </style>

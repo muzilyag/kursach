@@ -16,9 +16,10 @@ export interface IUser {
     user_registration_date: string;
     user_role?: string;
     active_subscription: IActiveSubscription | null;
+    had_subscription?: boolean;
 }
 
-export interface IUserCreate extends Omit<IUser, 'user_id' | 'user_registration_date' | 'active_subscription'> {
+export interface IUserCreate extends Omit<IUser, 'user_id' | 'user_registration_date' | 'active_subscription' | 'had_subscription'> {
     user_password?: string;
     user_registration_date?: string;
 }

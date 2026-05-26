@@ -91,5 +91,16 @@ export const Utils = {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(value)
+  },
+
+  getRoleLabel(role?: string): string {
+    if (!role) return '—'
+    const labels: Record<string, string> = {
+      superadmin: 'Суперадминистратор',
+      admin: 'Администратор',
+      content_manager: 'Контент-менеджер',
+      user: 'Пользователь'
+    }
+    return labels[role] || role
   }
 }

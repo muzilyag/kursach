@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ApiService, type IUser } from '../services/api'
+import { Utils } from '../utils'
 
 const router = useRouter()
 const user = ref<IUser | null>(null)
@@ -319,7 +320,7 @@ onMounted(loadProfile)
             <div class="d-flex justify-content-between">
               <span class="text-muted">Роль:</span>
               <span class="badge" style="background-color: var(--sidebar-primary)">{{
-                user?.user_role
+                Utils.getRoleLabel(user?.user_role)
               }}</span>
             </div>
           </div>

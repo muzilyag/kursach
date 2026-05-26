@@ -8,6 +8,7 @@ import { useDataTable } from '../composables/useDataTable'
 import DataTable from '../components/DataTable.vue'
 import Pagination from '../components/Pagination.vue'
 import Modal from '../components/Modal.vue'
+import CheckboxList from '../components/CheckboxList.vue'
 
 const columns = [
   { key: 'advertising_name', label: 'Название', sortable: true },
@@ -52,8 +53,8 @@ const form = reactive<IAdvertisingCreate>({
   advertising_name: '',
   advertising_duration: '00:00:00',
   advertising_owner: '',
-  advertising_start_date: new Date().toISOString().split('T')[0] ?? '',
-  advertising_finish_date: new Date().toISOString().split('T')[0] ?? '',
+  advertising_start_date: new Date().toISOString().split('T')[0] || '',
+  advertising_finish_date: new Date().toISOString().split('T')[0] || '',
   content_ids: [],
   tag_ids: []
 })
@@ -70,8 +71,8 @@ const openModal = (item: IAdvertising | null = null) => {
     Object.assign(form, {
       advertising_name: item.advertising_name || '',
       advertising_owner: item.advertising_owner,
-      advertising_start_date: item.advertising_start_date.split('T')[0],
-      advertising_finish_date: item.advertising_finish_date.split('T')[0],
+      advertising_start_date: item.advertising_start_date.split('T')[0] || '',
+      advertising_finish_date: item.advertising_finish_date.split('T')[0] || '',
       content_ids: item.content_ids || [],
       tag_ids: item.tag_ids || []
     })
@@ -83,8 +84,8 @@ const openModal = (item: IAdvertising | null = null) => {
     Object.assign(form, {
       advertising_name: '',
       advertising_owner: '',
-      advertising_start_date: new Date().toISOString().split('T')[0],
-      advertising_finish_date: new Date().toISOString().split('T')[0],
+      advertising_start_date: new Date().toISOString().split('T')[0] || '',
+      advertising_finish_date: new Date().toISOString().split('T')[0] || '',
       content_ids: [],
       tag_ids: []
     })
@@ -152,13 +153,13 @@ onMounted(async () => {
                 v-model="params.owner"
                 @input="load"
                 type="text"
-                class="form-control bg-light border-start-0"
+                class="form-control bg-light border-start-0 shadow-none"
                 placeholder="Поиск по заказчику..."
               />
             </div>
             <div class="form-check form-switch mb-0">
               <input
-                class="form-check-input"
+                class="form-check-input shadow-none"
                 type="checkbox"
                 id="expiredAdsSwitch"
                 v-model="params.show_expired"
@@ -254,7 +255,7 @@ onMounted(async () => {
                 type="number"
                 v-model.number="durationInput.h"
                 @change="validateTime('h')"
-                class="form-control form-control-sm text-center"
+                class="form-control form-control-sm text-center shadow-none"
                 placeholder="Ч"
               />
               <div class="text-center x-small text-muted">час</div>
@@ -264,7 +265,7 @@ onMounted(async () => {
                 type="number"
                 v-model.number="durationInput.m"
                 @change="validateTime('m')"
-                class="form-control form-control-sm text-center"
+                class="form-control form-control-sm text-center shadow-none"
                 placeholder="М"
               />
               <div class="text-center x-small text-muted">мин</div>
@@ -274,7 +275,7 @@ onMounted(async () => {
                 type="number"
                 v-model.number="durationInput.s"
                 @change="validateTime('s')"
-                class="form-control form-control-sm text-center"
+                class="form-control form-control-sm text-center shadow-none"
                 placeholder="С"
               />
               <div class="text-center x-small text-muted">сек</div>
@@ -288,26 +289,20 @@ onMounted(async () => {
 
         <div class="col-12">
           <label class="form-label small fw-bold">Привязка к тегам</label>
-          <div class="border rounded p-2 bg-white form-control checkbox-list-container">
-            <div class="form-check mb-1" v-for="t in tagsList" :key="t.tag_id">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                :value="t.tag_id"
-                :id="'tag-' + t.tag_id"
-                v-model="form.tag_ids"
-              />
-              <label class="form-check-label small" :for="'tag-' + t.tag_id">
-                {{ t.tag_name }}
-              </label>
-            </div>
-          </div>
+          <CheckboxList
+            v-model="form.tag_ids"
+            :items="tagsList"
+            value-key="tag_id"
+            label-key="tag_name"
+            empty-text="Теги не найдены"
+            max-height="180px"
+          />
         </div>
 
       </form>
       <template #footer>
-        <button type="button" class="btn btn-light" @click="closeModal">Отмена</button>
-        <button type="submit" form="advertisingForm" class="btn btn-primary px-4">Сохранить</button>
+        <button type="button" class="btn btn-light shadow-none" @click="closeModal">Отмена</button>
+        <button type="submit" form="advertisingForm" class="btn btn-primary px-4 shadow-none">Сохранить</button>
       </template>
     </Modal>
   </div>
@@ -316,10 +311,6 @@ onMounted(async () => {
 <style scoped>
 .x-small {
   font-size: 0.7rem;
-}
-.checkbox-list-container {
-  max-height: 180px;
-  overflow-y: auto;
 }
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
