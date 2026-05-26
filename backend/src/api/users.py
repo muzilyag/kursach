@@ -20,6 +20,7 @@ from src.core.security import (
 
 router = APIRouter()
 
+
 @router.get("", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
 async def get_users(
     page: int = 1,
@@ -42,6 +43,7 @@ async def get_users(
         "sort": sort,
         "order": order,
     }
+
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(
@@ -86,6 +88,7 @@ async def get_me(
 
     return response_data
 
+
 @router.patch("/me", response_model=UserResponse)
 async def patch_me(
     user_data: UserUpdate,
@@ -103,12 +106,13 @@ async def patch_me(
         update_dict.pop("user_registration_date", None)
 
     updated = await repo.update(current_user.user_id, update_dict)
-    
+
     had_sub_stmt = select(exists().where(Subscribe.user_id == current_user.user_id))
     had_sub_result = await db.execute(had_sub_stmt)
     updated.had_subscription = had_sub_result.scalar()
-    
+
     return updated
+
 
 @router.patch("/me/password")
 async def change_password(
@@ -127,6 +131,7 @@ async def change_password(
 
     return {"success": True, "message": "Пароль успешно изменен"}
 
+
 @router.delete("/me")
 async def delete_me(
     current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
@@ -139,6 +144,7 @@ async def delete_me(
 
     return {"success": True, "message": "Ваш аккаунт и все связанные данные удалены"}
 
+
 @router.get("/{user_id}", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
 async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)):
     repo = UserRepository(db)
@@ -146,6 +152,7 @@ async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return user
+
 
 @router.post("", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
 async def create_user(
@@ -174,6 +181,7 @@ async def create_user(
             status_code=400, detail="Пользователь с таким email уже существует"
         )
 
+
 @router.put("/{user_id}", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
 async def update_user(
     user_id: int, user_data: UserUpdate, db: AsyncSession = Depends(get_db)
@@ -193,6 +201,7 @@ async def update_user(
         raise HTTPException(
             status_code=400, detail="Пользователь с таким email уже существует"
         )
+
 
 @router.delete(
     "/{user_id}", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))]

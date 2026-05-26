@@ -3,6 +3,7 @@ from sqlalchemy import text, bindparam
 from datetime import date
 from typing import List, Optional
 
+
 class ReportRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -70,13 +71,13 @@ class ReportRepository:
             FROM Subscribe_type st
             LEFT JOIN v_subscription_activity sa ON st.subscribe_type_id = sa.subscribe_type_id
         """
-        
+
         params = {}
         if subscribe_type_ids:
             sql += " WHERE st.subscribe_type_id IN :sub_ids"
             params["sub_ids"] = subscribe_type_ids
 
-        sql += " GROUP BY st.subscribe_type_name ORDER BY \"Unique Content\" DESC;"
+        sql += ' GROUP BY st.subscribe_type_name ORDER BY "Unique Content" DESC;'
 
         query = text(sql)
         if subscribe_type_ids:

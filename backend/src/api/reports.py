@@ -65,6 +65,7 @@ MONTH_MAP = {
     "December": "Декабрь",
 }
 
+
 def process_report_data(data: List[Dict]) -> List[Dict]:
     if not data:
         return data
@@ -86,6 +87,7 @@ def process_report_data(data: List[Dict]) -> List[Dict]:
         processed.append(new_row)
     return processed
 
+
 def create_csv_response(data: List[Dict], filename: str):
     if not data:
         raise HTTPException(status_code=404, detail="No data found")
@@ -103,7 +105,10 @@ def create_csv_response(data: List[Dict], filename: str):
         },
     )
 
-def create_pdf_response(data: List[Dict], filename: str, title: str = None, report_type: str = None):
+
+def create_pdf_response(
+    data: List[Dict], filename: str, title: str = None, report_type: str = None
+):
     if not data:
         raise HTTPException(status_code=404, detail="No data found")
     buffer = io.BytesIO()
@@ -143,12 +148,16 @@ def create_pdf_response(data: List[Dict], filename: str, title: str = None, repo
     if report_type:
         try:
             drawing = Drawing(740, 280)
-            
+
             colors_list = [
-                colors.HexColor("#4e79a7"), colors.HexColor("#1cc88a"), 
-                colors.HexColor("#36b9cc"), colors.HexColor("#f6c23e"), 
-                colors.HexColor("#e74a3b"), colors.HexColor("#858796"),
-                colors.HexColor("#5a5c69"), colors.HexColor("#2e59d9")
+                colors.HexColor("#4e79a7"),
+                colors.HexColor("#1cc88a"),
+                colors.HexColor("#36b9cc"),
+                colors.HexColor("#f6c23e"),
+                colors.HexColor("#e74a3b"),
+                colors.HexColor("#858796"),
+                colors.HexColor("#5a5c69"),
+                colors.HexColor("#2e59d9"),
             ]
 
             if report_type == "seasonality":
@@ -157,14 +166,14 @@ def create_pdf_response(data: List[Dict], filename: str, title: str = None, repo
                 lc.y = 80
                 lc.height = 140
                 lc.width = 650
-                
+
                 genres = set()
                 for row in data:
                     for k in row.keys():
                         if k != "Месяц":
                             genres.add(k)
                 genres = sorted(list(genres))
-                
+
                 if genres:
                     chart_data = []
                     for genre in genres:
@@ -172,31 +181,36 @@ def create_pdf_response(data: List[Dict], filename: str, title: str = None, repo
                         for row in data:
                             line_data.append(float(row.get(genre, 0)))
                         chart_data.append(line_data)
-                        
+
                     lc.data = chart_data
-                    lc.categoryAxis.categoryNames = [str(row.get("Месяц", "")) for row in data]
+                    lc.categoryAxis.categoryNames = [
+                        str(row.get("Месяц", "")) for row in data
+                    ]
                     lc.categoryAxis.labels.fontName = MAIN_FONT
                     lc.categoryAxis.labels.angle = 45
                     lc.categoryAxis.labels.dy = -15
                     lc.valueAxis.labels.fontName = MAIN_FONT
                     lc.valueAxis.valueMin = 0
                     lc.lines.symbol = None
-                    
+
                     for i, genre in enumerate(genres):
                         lc.lines[i].strokeColor = colors_list[i % len(colors_list)]
                         lc.lines[i].strokeWidth = 2
-                        
+
                     drawing.add(lc)
-                    
+
                     leg = Legend()
                     leg.fontName = MAIN_FONT
                     leg.alignment = "right"
                     leg.x = 50
                     leg.y = 20
                     leg.columnMaximum = 2
-                    leg.colorNamePairs = [(colors_list[i % len(colors_list)], genres[i]) for i in range(len(genres))]
+                    leg.colorNamePairs = [
+                        (colors_list[i % len(colors_list)], genres[i])
+                        for i in range(len(genres))
+                    ]
                     drawing.add(leg)
-                    
+
                     elements.append(drawing)
 
             elif report_type == "activity":
@@ -206,13 +220,15 @@ def create_pdf_response(data: List[Dict], filename: str, title: str = None, repo
                 bc.height = 140
                 bc.width = 650
                 bc.data = [[float(row.get("Среднее время (мин)", 0)) for row in data]]
-                bc.categoryAxis.categoryNames = [str(row.get("Подписка", "")) for row in data]
+                bc.categoryAxis.categoryNames = [
+                    str(row.get("Подписка", "")) for row in data
+                ]
                 bc.categoryAxis.labels.fontName = MAIN_FONT
                 bc.valueAxis.labels.fontName = MAIN_FONT
                 bc.valueAxis.valueMin = 0
                 bc.bars[0].fillColor = colors_list[0]
                 drawing.add(bc)
-                
+
                 leg = Legend()
                 leg.fontName = MAIN_FONT
                 leg.alignment = "right"
@@ -220,7 +236,7 @@ def create_pdf_response(data: List[Dict], filename: str, title: str = None, repo
                 leg.y = 30
                 leg.colorNamePairs = [(colors_list[0], "Среднее время (мин)")]
                 drawing.add(leg)
-                
+
                 elements.append(drawing)
 
             elif report_type == "revenue":
@@ -234,25 +250,28 @@ def create_pdf_response(data: List[Dict], filename: str, title: str = None, repo
                     pc.height = 140
                     pc.data = pc_data
                     pc.labels = labels
-                    
+
                     for i in range(len(pc_data)):
                         pc.slices[i].fillColor = colors_list[i % len(colors_list)]
                         pc.slices[i].fontName = MAIN_FONT
-                        
+
                     drawing.add(pc)
-                    
+
                     leg = Legend()
                     leg.fontName = MAIN_FONT
                     leg.alignment = "right"
                     leg.x = 50
                     leg.y = 30
                     leg.columnMaximum = 3
-                    leg.colorNamePairs = [(colors_list[i % len(colors_list)], labels[i]) for i in range(len(pc_data))]
+                    leg.colorNamePairs = [
+                        (colors_list[i % len(colors_list)], labels[i])
+                        for i in range(len(pc_data))
+                    ]
                     drawing.add(leg)
-                    
+
                     elements.append(drawing)
 
-        except Exception as e:
+        except Exception:
             pass
 
     doc.build(elements)
@@ -266,7 +285,10 @@ def create_pdf_response(data: List[Dict], filename: str, title: str = None, repo
         },
     )
 
-@router.get("/seasonality", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
+
+@router.get(
+    "/seasonality", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))]
+)
 async def get_seasonality_report(
     start_month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
     end_month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
@@ -280,13 +302,14 @@ async def get_seasonality_report(
     if export:
         if format == "pdf":
             return create_pdf_response(
-                data, 
-                f"seasonality_{start_month}_to_{end_month}", 
+                data,
+                f"seasonality_{start_month}_to_{end_month}",
                 title=f"Отчёт по сезонности ({start_month} - {end_month})",
-                report_type="seasonality"
+                report_type="seasonality",
             )
         return create_csv_response(data, f"seasonality_{start_month}_to_{end_month}")
     return data
+
 
 @router.get("/activity", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
 async def get_activity_report(
@@ -301,13 +324,14 @@ async def get_activity_report(
     if export:
         if format == "pdf":
             return create_pdf_response(
-                data, 
-                "activity_report", 
+                data,
+                "activity_report",
                 title="Отчёт по активности пользователей",
-                report_type="activity"
+                report_type="activity",
             )
         return create_csv_response(data, "activity_report")
     return data
+
 
 @router.get("/revenue", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
 async def get_revenue_report(
@@ -326,10 +350,10 @@ async def get_revenue_report(
             formatted_end = end_date.strftime("%d.%m.%Y")
             title = f"Отчёт по выручке за период с {formatted_start} по {formatted_end}"
             return create_pdf_response(
-                data, 
-                f"revenue_{start_date}_{end_date}", 
+                data,
+                f"revenue_{start_date}_{end_date}",
                 title=title,
-                report_type="revenue"
+                report_type="revenue",
             )
         return create_csv_response(data, f"revenue_{start_date}_{end_date}")
     return data
