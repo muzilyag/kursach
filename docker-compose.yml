@@ -22,7 +22,9 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
     ports:
-      - "5050:80"
+      - "8081:80"
+    volumes:
+    - pgadmin_data:/var/lib/pgadmin
     depends_on:
       db:
         condition: service_healthy
@@ -48,9 +50,10 @@ services:
     container_name: cinema_frontend
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8080:80"
     depends_on:
       - backend
 
 volumes:
   postgres_data:
+  pgadmin_data:
