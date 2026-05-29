@@ -67,7 +67,7 @@ const formatDuration = (days: number) => {
           </li>
           <li class="mb-3 d-flex align-items-center">
             <i class="bi bi-check2-circle me-2 text-success fs-5"></i>
-            <span>Качество video до <strong>{{ group.max_quality }}p</strong></span>
+            <span>Качество видео до <strong>{{ group.max_quality }}p</strong></span>
           </li>
           <li class="text-muted small mt-2 ps-1 border-start lh-sm">{{ group.discription }}</li>
         </ul>

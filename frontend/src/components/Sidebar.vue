@@ -155,9 +155,9 @@ const canSeeContent = computed(() => ['content_manager', 'superadmin'].includes(
       </li>
     </ul>
 
-    <hr style="border-color: var(--sidebar-border)" />
+    <hr v-if="canSeeManagement" style="border-color: var(--sidebar-border)" />
 
-    <div class="status-indicator d-flex flex-column align-items-center align-items-md-start px-2">
+    <div v-if="canSeeManagement" class="status-indicator d-flex flex-column align-items-center align-items-md-start px-2">
       <small style="color: var(--sidebar-text-muted)" class="d-block mb-1 sidebar-text">Статус БД:</small>
       <div
         v-if="isDbConnected"
