@@ -289,7 +289,7 @@ onMounted(() => {
         </div>
         <div class="mb-3">
           <label class="form-label small fw-bold text-muted">Роль системы</label>
-          <select v-model="userForm.user_role" class="form-select" required>
+          <select v-model="userForm.user_role" class="form-select" required :disabled="isEditing">
             <option value="user">Пользователь</option>
             <option value="content_manager">Контент-менеджер</option>
             <option v-if="currentUserRole === 'superadmin'" value="admin">Администратор</option>
