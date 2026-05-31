@@ -1,17 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import DashboardView from '../views/DashboardView.vue'
 import CatalogView from '../views/CatalogView.vue'
-
-const getRole = () => {
-  const token = localStorage.getItem('token')
-  if (!token) return null
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1] ?? ''))
-    return payload.role || null
-  } catch {
-    return null
-  }
-}
+import { ApiService } from '../services/api'
 
 const isAdminRedirect = (role: string | null) => {
   return role === 'admin' || role === 'superadmin'
@@ -41,7 +31,7 @@ const router = createRouter({
     {
       path: '/',
       redirect: () => {
-        const role = getRole()
+        const role = ApiService.getRoleFromToken()
         if (role === 'content_manager') return '/content'
         return isAdminRedirect(role) ? '/admin/dashboard' : '/catalog'
       }
@@ -111,8 +101,8 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
-  const role = getRole()
-
+  const role = ApiService.getRoleFromToken()
+  
   if (to.meta.public) {
     if (token && (to.name === 'login' || to.name === 'register')) {
       if (role === 'content_manager') return next('/content')
@@ -131,7 +121,7 @@ router.beforeEach((to, from, next) => {
   const allowedRoles = to.meta.allowedRoles as string[]
   if (allowedRoles && !allowedRoles.includes(role || '')) {
     if (role === 'content_manager') return next('/content')
-    if (role === 'admin') return next('/admin/dashboard')
+    if (role === 'admin' || role === 'superadmin') return next('/admin/dashboard')
     return next('/catalog')
   }
 

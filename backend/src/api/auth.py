@@ -23,7 +23,7 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         )
     )
     result = await db.execute(query)
-    existing_user = result.scalar_one_or_none()
+    existing_user = result.scalars().first()
 
     if existing_user:
         raise HTTPException(

@@ -18,16 +18,16 @@ const handleLogin = async () => {
   try {
     await ApiService.login(form)
     const role = ApiService.getRoleFromToken()
-    if (role === 'superadmin') {
-      router.push('/users')
-    } else if (role === 'admin') {
-      router.push('admin/dashboard')
+
+    if (role === 'superadmin' || role === 'admin') {
+      await router.push('/admin/dashboard')
     } else if (role === 'content_manager') {
-      router.push('/content')
+      await router.push('/content')
     } else {
-      router.push('/catalog')
+      await router.push('/catalog')
     }
   } catch (e: any) {
+    console.error('[Login] Ошибка входа:', e)
     error.value = e.message
   } finally {
     loading.value = false

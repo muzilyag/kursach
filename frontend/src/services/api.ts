@@ -204,6 +204,7 @@ export const ApiService = {
         
         if (response.status === 401) {
             localStorage.removeItem('token');
+            window.location.href = '/login';
         }
 
         if (response.status === 403) {
@@ -211,8 +212,24 @@ export const ApiService = {
         }
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            throw new Error(error.detail || error.error || `Error: ${response.status}`);
+            const errorData = await response.json().catch(() => ({}));
+            let errorMessage = `Ошибка: ${response.status}`;
+
+            if (errorData.detail) {
+                if (typeof errorData.detail === 'string') {
+                    errorMessage = errorData.detail;
+                } else if (Array.isArray(errorData.detail)) {
+                    errorMessage = errorData.detail.map((e: any) => e.msg || JSON.stringify(e)).join(', ');
+                } else if (typeof errorData.detail === 'object') {
+                    errorMessage = errorData.detail.message || errorData.detail.msg || JSON.stringify(errorData.detail);
+                }
+            } else if (errorData.message) {
+                errorMessage = errorData.message;
+            } else if (errorData.error) {
+                errorMessage = errorData.error;
+            }
+
+            throw new Error(errorMessage);
         }
         
         return response.json();
@@ -232,6 +249,7 @@ export const ApiService = {
         
         if (response.status === 401) {
             localStorage.removeItem('token');
+            window.location.href = '/login';
         }
 
         if (!response.ok) {
@@ -258,7 +276,8 @@ export const ApiService = {
     },
 
     logout() {
-        localStorage.removeItem('token');
+        localStorage.clear();
+        sessionStorage.clear();
         window.location.href = '/';
     },
 

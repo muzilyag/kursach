@@ -106,7 +106,6 @@ async def create_tag(tag_data: TagCreate, db: AsyncSession = Depends(get_db)):
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Exists")
 
-    # 1. Формируем связи ДО добавления в сессию
     contents_list = []
     if tag_data.content_ids:
         c_res = await db.execute(
@@ -114,10 +113,8 @@ async def create_tag(tag_data: TagCreate, db: AsyncSession = Depends(get_db)):
         )
         contents_list = list(c_res.scalars().all())
 
-    # 2. Собираем объект целиком
     new_tag = Tag(tag_name=tag_data.tag_name, contents=contents_list)
 
-    # 3. Только теперь отдаем алхимии
     db.add(new_tag)
     await db.commit()
 

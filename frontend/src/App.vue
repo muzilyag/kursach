@@ -10,13 +10,13 @@ const isDbConnected = ref(false)
 const currentUser = ref<IUser | null>(null)
 const userRole = ref<string | null>(null)
 const isPinned = ref(true)
-
 const isAuthPage = computed(() => ['login', 'register'].includes(route.name as string))
 
 const roleLabels: Record<string, string> = {
   admin: 'Администратор',
   content_manager: 'Контент-менеджер',
-  user: 'Пользователь'
+  user: 'Пользователь',
+  syperadmin: 'Суперадминистратор'
 }
 
 const displayRole = computed(() => {
@@ -24,8 +24,11 @@ const displayRole = computed(() => {
 })
 
 const initializeApp = async () => {
+  console.log(`[App] initializeApp вызвана (route: ${route.path})`)
   const token = localStorage.getItem('token')
   userRole.value = ApiService.getRoleFromToken()
+
+  console.log(`[App] Токен: ${!!token}, Роль: ${userRole.value}, AuthPage: ${isAuthPage.value}`)
 
   if (isAuthPage.value || !token) {
     currentUser.value = null
@@ -35,13 +38,17 @@ const initializeApp = async () => {
   try {
     const [health, user] = await Promise.all([
       ApiService.checkHealth().catch(() => false),
-      ApiService.getMe().catch(() => null)
+      ApiService.getMe().catch((e) => {
+        console.error('[App] Ошибка получения профиля:', e);
+        return null;
+      })
     ])
 
+    console.log('[App] Профиль загружен:', user?.user_email)
     isDbConnected.value = !!health
     currentUser.value = user
   } catch (e) {
-    console.error(e)
+    console.error('[App] Глобальная ошибка инициализации:', e)
   }
 }
 
