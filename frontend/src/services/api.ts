@@ -196,19 +196,22 @@ export const ApiService = {
             ...(options.headers as Record<string, string>)
         };
 
-        if (token) {
+        const isAuthRoute = url.includes('/login') || url.includes('/register');
+
+        if (token && !isAuthRoute) {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
         const response = await fetch(url, { ...options, headers });
         
-        if (response.status === 401) {
+        if (response.status === 401 && !isAuthRoute) {
             localStorage.removeItem('token');
             window.location.href = '/login';
+            return Promise.reject(new Error('Unauthorized'));
         }
 
         if (response.status === 403) {
-            throw new Error("Forbidden");
+            throw new Error("У вас нет прав для выполнения этого действия.");
         }
 
         if (!response.ok) {
@@ -250,6 +253,7 @@ export const ApiService = {
         if (response.status === 401) {
             localStorage.removeItem('token');
             window.location.href = '/login';
+            throw new Error('Unauthorized');
         }
 
         if (!response.ok) {

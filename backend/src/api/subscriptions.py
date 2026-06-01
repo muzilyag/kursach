@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload, joinedload
-from sqlalchemy import func, and_, exists, text
+from sqlalchemy import func, and_, exists, text, not_
 from datetime import date, timedelta
 from typing import Optional
 from src.core.database import get_db
@@ -128,7 +128,12 @@ async def get_users_filtered(
                 Subscribe.subscribe_type_id,
             )
             .join(Subscribe, Subscribe.user_id == User.user_id)
-            .where(Subscribe.subscribe_finish >= date.today())
+            .where(
+                and_(
+                    Subscribe.subscribe_finish >= date.today(),
+                    not_(User.user_email.endswith("@deleted.local"))
+                )
+            )
             .limit(limit)
         )
         result = await db.execute(query)
@@ -148,7 +153,12 @@ async def get_users_filtered(
                 Subscribe.subscribe_finish >= date.today(),
             )
         )
-        query = select(User).where(~active_sub_exists).limit(limit)
+        query = select(User).where(
+            and_(
+                ~active_sub_exists,
+                not_(User.user_email.endswith("@deleted.local"))
+            )
+        ).limit(limit)
         result = await db.execute(query)
         users = result.scalars().all()
         return [
@@ -185,7 +195,8 @@ async def get_subscriptions(
         )
     )
 
-    conditions = []
+    conditions = [not_(User.user_email.endswith("@deleted.local"))]
+    
     if search:
         conditions.append(User.user_name.ilike(f"%{search}%"))
     if start_date:

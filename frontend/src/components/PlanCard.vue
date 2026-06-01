@@ -75,26 +75,24 @@ const formatDuration = (days: number) => {
 
       <button
         @click="selectedOption && emit('action', selectedOption.subscribe_type_id)"
-        :disabled="
-          isProcessing ||
-          currentSubId === selectedOption?.subscribe_type_id
-        "
+        :disabled="isProcessing"
         class="btn w-100 py-3 fw-bold purchase-btn mt-3"
         :class="
           currentSubId === selectedOption?.subscribe_type_id
-            ? 'btn-secondary'
+            ? 'btn-renew'
             : 'btn-primary'
         "
       >
         <span v-if="isProcessing" class="spinner-border spinner-border-sm me-2"></span>
-        <span
-          v-if="
-            currentSubId === selectedOption?.subscribe_type_id
-          "
-          >Текущий тариф</span
-        >
-        <span v-else-if="hasActiveSub">Сменить тариф</span>
-        <span v-else>Оформить подписку</span>
+        <span v-if="currentSubId === selectedOption?.subscribe_type_id">
+          Продлить
+        </span>
+        <span v-else-if="hasActiveSub">
+          Сменить тариф
+        </span>
+        <span v-else>
+          Оформить подписку
+        </span>
       </button>
     </div>
   </div>
@@ -120,6 +118,20 @@ const formatDuration = (days: number) => {
   background-color: var(--sidebar-primary);
   border: none;
   border-radius: 14px;
+}
+.purchase-btn.btn-renew {
+  background-color: var(--success-color);
+  color: var(--text-darker);
+  border: none;
+  border-radius: 14px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(168, 198, 160, 0.3);
+}
+.purchase-btn.btn-renew:hover {
+  filter: brightness(0.95);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(168, 198, 160, 0.4);
+  color: var(--text-darker);
 }
 .purchase-btn.btn-secondary {
   border-radius: 14px;

@@ -211,4 +211,4 @@ async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
     deleted = await repo.delete(user_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
-    return {"success": True, "message": "Пользователь и все связанные данные удалены"}
+    return {"success": True, "message": "Пользователь удален"}

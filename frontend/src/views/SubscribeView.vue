@@ -83,9 +83,12 @@ const handleAction = async (planId?: number) => {
   if (!planId) return
   isProcessing.value = true
   try {
-    if (currentUser.value?.active_subscription) {
+    const activeSub = currentUser.value?.active_subscription
+    const isRenewing = activeSub?.subscribe_type_id === planId
+
+    if (activeSub && !isRenewing) {
       await ApiService.changeSubscription({
-        user_id: currentUser.value.user_id,
+        user_id: currentUser.value!.user_id,
         subscribe_type_id: planId,
         payment_method: selectedPayment.value
       })
@@ -95,7 +98,7 @@ const handleAction = async (planId?: number) => {
         subscribe_type_id: planId,
         payment_method: selectedPayment.value
       })
-      alert('Подписка успешно оформлена!')
+      alert(isRenewing ? 'Подписка успешно продлена!' : 'Подписка успешно оформлена!')
     }
     router.push('/profile')
   } catch (e: any) {

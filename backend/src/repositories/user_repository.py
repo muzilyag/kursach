@@ -1,8 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import or_, desc, asc, func
+from sqlalchemy import or_, desc, asc, func, not_
 from src.models.user import User
 from typing import List, Optional
+import uuid
 
 
 class UserRepository:
@@ -19,7 +20,7 @@ class UserRepository:
         roles: Optional[List[str]] = None,
     ):
         offset = (page - 1) * limit
-        query = select(User)
+        query = select(User).where(not_(User.user_email.endswith("@deleted.local")))
 
         if search:
             query = query.where(
@@ -43,7 +44,7 @@ class UserRepository:
         return result.scalars().all()
 
     async def get_count(self, search: str = "", roles: Optional[List[str]] = None):
-        query = select(func.count()).select_from(User)
+        query = select(func.count()).select_from(User).where(not_(User.user_email.endswith("@deleted.local")))
         if search:
             query = query.where(
                 or_(
@@ -59,7 +60,9 @@ class UserRepository:
         return result.scalar()
 
     async def get_by_id(self, user_id: int):
-        result = await self.session.execute(select(User).where(User.user_id == user_id))
+        result = await self.session.execute(
+            select(User).where(User.user_id == user_id, not_(User.user_email.endswith("@deleted.local")))
+        )
         return result.scalar_one_or_none()
 
     async def create(self, user: User):
@@ -79,9 +82,14 @@ class UserRepository:
         return user
 
     async def delete(self, user_id: int):
-        user = await self.get_by_id(user_id)
+        user = await self.session.get(User, user_id)
         if not user:
             return False
-        await self.session.delete(user)
+            
+        unique_hash = uuid.uuid4().hex 
+        user.user_name = f"user_{unique_hash[:10]}"
+        user.user_email = f"{unique_hash}@deleted.local"
+        user.user_password = "deleted_account_invalid_hash"
+        
         await self.session.commit()
         return True

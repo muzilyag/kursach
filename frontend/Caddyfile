@@ -1,9 +1,21 @@
 :80 {
     root * /srv
     encode zstd gzip
+
     handle /api/* {
         reverse_proxy backend:8000
     }
+
+    @notAssets {
+        not path /assets/*
+    }
+    header @notAssets Cache-Control "no-cache, no-store, must-revalidate"
+
+    @assets {
+        path /assets/*
+    }
+    header @assets Cache-Control "public, max-age=31536000, immutable"
+
     handle {
         try_files {path} /index.html
         file_server

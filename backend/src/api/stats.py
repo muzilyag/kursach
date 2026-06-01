@@ -1,7 +1,7 @@
 import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func, select
+from sqlalchemy import func, select, not_
 from src.core.database import get_db
 from src.models.user import User
 from src.models.content import Content, Genre, CopyrightHolder, Tag
@@ -23,7 +23,9 @@ async def get_dashboard_statistics(
             detail="Доступ запрещен. Требуются права администратора.",
         )
 
-    users_query = await db.execute(select(func.count(User.user_id)))
+    users_query = await db.execute(
+        select(func.count(User.user_id)).where(not_(User.user_email.endswith("@deleted.local")))
+    )
     total_users = users_query.scalar() or 0
 
     revenue_query = await db.execute(select(func.sum(Payment.payment_sum)))
@@ -101,7 +103,8 @@ async def get_dashboard_statistics(
 
     this_week_query = await db.execute(
         select(func.count(User.user_id)).where(
-            User.user_registration_date >= start_this_week
+            User.user_registration_date >= start_this_week,
+            not_(User.user_email.endswith("@deleted.local"))
         )
     )
     total_new_this_week = this_week_query.scalar() or 0
@@ -110,6 +113,7 @@ async def get_dashboard_statistics(
         select(func.count(User.user_id)).where(
             User.user_registration_date >= start_past_week,
             User.user_registration_date <= end_past_week,
+            not_(User.user_email.endswith("@deleted.local"))
         )
     )
     total_new_past_week = past_week_query.scalar() or 0
@@ -123,7 +127,10 @@ async def get_dashboard_statistics(
 
     daily_query = await db.execute(
         select(User.user_registration_date, func.count(User.user_id))
-        .where(User.user_registration_date >= start_this_week)
+        .where(
+            User.user_registration_date >= start_this_week,
+            not_(User.user_email.endswith("@deleted.local"))
+        )
         .group_by(User.user_registration_date)
     )
     daily_counts = {row[0]: row[1] for row in daily_query.all()}
