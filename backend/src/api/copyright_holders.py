@@ -6,11 +6,12 @@ from src.core.database import get_db
 from src.schemas.content import CopyrightHolderCreate, CopyrightHolderRead
 from src.models.content import CopyrightHolder, Content, content_copyright_association
 from src.core.security import RoleChecker
+from src.models.user import UserRole
 
 router = APIRouter(tags=["Copyright Holders"])
 
 
-@router.get("", dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))])
+@router.get("", dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))])
 async def get_copyright_holders(
     search: str = Query(None),
     page: int = Query(1, ge=1),
@@ -94,7 +95,7 @@ async def get_copyright_holders(
 @router.post(
     "",
     response_model=CopyrightHolderRead,
-    dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))],
+    dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))],
 )
 async def create_copyright_holder(
     data: CopyrightHolderCreate, db: AsyncSession = Depends(get_db)
@@ -124,7 +125,7 @@ async def create_copyright_holder(
 @router.put(
     "/{holder_id}",
     response_model=CopyrightHolderRead,
-    dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))],
+    dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))],
 )
 async def update_copyright_holder(
     holder_id: int, data: CopyrightHolderCreate, db: AsyncSession = Depends(get_db)
@@ -162,7 +163,7 @@ async def update_copyright_holder(
 
 @router.delete(
     "/{holder_id}",
-    dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))],
+    dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))],
 )
 async def delete_copyright_holder(holder_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(

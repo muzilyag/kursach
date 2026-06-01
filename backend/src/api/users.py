@@ -17,11 +17,12 @@ from src.core.security import (
     get_current_user,
     verify_password,
 )
+from src.models.user import UserRole
 
 router = APIRouter()
 
 
-@router.get("", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
+@router.get("", dependencies=[Depends(RoleChecker([UserRole.admin.value, UserRole.superadmin.value]))])
 async def get_users(
     page: int = 1,
     limit: int = 10,
@@ -101,7 +102,7 @@ async def patch_me(
     if "user_password" in update_dict:
         update_dict["user_password"] = get_password_hash(update_dict["user_password"])
 
-    if current_user.user_role != "superadmin":
+    if current_user.user_role != UserRole.superadmin.value:
         update_dict.pop("user_role", None)
         update_dict.pop("user_registration_date", None)
 
@@ -145,7 +146,7 @@ async def delete_me(
     return {"success": True, "message": "Ваш аккаунт и все связанные данные удалены"}
 
 
-@router.get("/{user_id}", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
+@router.get("/{user_id}", dependencies=[Depends(RoleChecker([UserRole.admin.value, UserRole.superadmin.value]))])
 async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)):
     repo = UserRepository(db)
     user = await repo.get_by_id(user_id)
@@ -154,15 +155,15 @@ async def get_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)):
     return user
 
 
-@router.post("", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
+@router.post("", dependencies=[Depends(RoleChecker([UserRole.admin.value, UserRole.superadmin.value]))])
 async def create_user(
     user_data: UserCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     if (
-        user_data.user_role in ["admin", "superadmin"]
-        and current_user.user_role != "superadmin"
+        user_data.user_role in [UserRole.admin.value, UserRole.superadmin.value]
+        and current_user.user_role != UserRole.superadmin.value
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -175,14 +176,14 @@ async def create_user(
     new_user = User(**user_dict)
     try:
         created = await repo.create(new_user)
-        return {"success": True, "message": "Пользователь добавлен", "user": created}
+        return {"success": True, "message": "Пользователь добавлен", UserRole.user.value: created}
     except IntegrityError:
         raise HTTPException(
             status_code=400, detail="Пользователь с таким email уже существует"
         )
 
 
-@router.put("/{user_id}", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
+@router.put("/{user_id}", dependencies=[Depends(RoleChecker([UserRole.admin.value, UserRole.superadmin.value]))])
 async def update_user(
     user_id: int, user_data: UserUpdate, db: AsyncSession = Depends(get_db)
 ):
@@ -196,7 +197,7 @@ async def update_user(
         updated = await repo.update(user_id, update_dict)
         if not updated:
             raise HTTPException(status_code=404, detail="Пользователь не найден")
-        return {"success": True, "message": "Пользователь обновлен", "user": updated}
+        return {"success": True, "message": "Пользователь обновлен", UserRole.user.value: updated}
     except IntegrityError:
         raise HTTPException(
             status_code=400, detail="Пользователь с таким email уже существует"
@@ -204,7 +205,7 @@ async def update_user(
 
 
 @router.delete(
-    "/{user_id}", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))]
+    "/{user_id}", dependencies=[Depends(RoleChecker([UserRole.admin.value, UserRole.superadmin.value]))]
 )
 async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
     repo = UserRepository(db)

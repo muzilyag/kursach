@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, asc, desc, text
 from typing import Optional
 from datetime import date
+from src.models.user import UserRole
 
 from src.core.database import get_db
 from src.models.advertising import Advertising
@@ -26,7 +27,7 @@ def _calculate_is_active(ad: Advertising) -> bool:
     "",
     response_model=AdvertisingResponse,
     status_code=201,
-    dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))],
+    dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))],
 )
 async def create_advertising(
     ad_in: AdvertisingCreate, db: AsyncSession = Depends(get_db)
@@ -56,7 +57,7 @@ async def create_advertising(
 @router.get(
     "",
     response_model=AdvertisingListResponse,
-    dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))],
+    dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))],
 )
 async def get_advertisements(
     skip: int = Query(0, ge=0),
@@ -138,7 +139,7 @@ async def get_advertising(ad_id: int, db: AsyncSession = Depends(get_db)):
 @router.put(
     "/{ad_id}",
     response_model=AdvertisingResponse,
-    dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))],
+    dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))],
 )
 async def update_advertising(
     ad_id: int, ad_in: AdvertisingUpdate, db: AsyncSession = Depends(get_db)
@@ -187,7 +188,7 @@ async def update_advertising(
 @router.delete(
     "/{ad_id}",
     status_code=204,
-    dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))],
+    dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))],
 )
 async def delete_advertising(ad_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(

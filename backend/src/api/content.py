@@ -5,6 +5,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import func, or_, Table, Column, Integer
 from typing import List, Optional
 import datetime
+from src.models.user import UserRole
 
 from src.core.database import get_db
 from src.core.security import get_current_user
@@ -120,7 +121,7 @@ async def get_content(
     }
 
 
-@router.post("", dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))])
+@router.post("", dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))])
 async def create_content(data: ContentCreate, db: AsyncSession = Depends(get_db)):
     genres_list = []
     if data.genre_ids:
@@ -160,7 +161,7 @@ async def create_content(data: ContentCreate, db: AsyncSession = Depends(get_db)
 
 @router.put(
     "/{content_id}",
-    dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))],
+    dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))],
 )
 async def update_content(
     content_id: int, data: ContentCreate, db: AsyncSession = Depends(get_db)
@@ -218,7 +219,7 @@ async def update_content(
 
 @router.get(
     "/{content_id}/progress",
-    dependencies=[Depends(RoleChecker(["user", "superadmin"]))],
+    dependencies=[Depends(RoleChecker([UserRole.user.value, UserRole.superadmin.value]))],
 )
 async def get_viewing_progress(
     content_id: int,
@@ -239,7 +240,7 @@ async def get_viewing_progress(
 
 @router.patch(
     "/{content_id}/progress",
-    dependencies=[Depends(RoleChecker(["user", "superadmin"]))],
+    dependencies=[Depends(RoleChecker([UserRole.user.value, UserRole.superadmin.value]))],
 )
 async def update_viewing_progress(
     content_id: int,
@@ -281,7 +282,7 @@ async def update_viewing_progress(
 
 @router.delete(
     "/{content_id}",
-    dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))],
+    dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))],
 )
 async def delete_content(content_id: int, db: AsyncSession = Depends(get_db)):
     content = await db.get(Content, content_id)

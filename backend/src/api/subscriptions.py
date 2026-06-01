@@ -16,12 +16,15 @@ from src.schemas.subscription import (
     UserSubscriptionBuy,
 )
 from src.core.security import get_current_user, RoleChecker
+from src.models.user import UserRole
 
 router = APIRouter()
 
 
 @router.get(
-    "/types", dependencies=[Depends(RoleChecker(["user", "admin", "superadmin"]))]
+    "/types", dependencies=[Depends(RoleChecker([UserRole.user.value, 
+                                                 UserRole.admin.value, 
+                                                 UserRole.superadmin.value]))]
 )
 async def get_subscription_types(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(SubscribeType))
@@ -42,7 +45,10 @@ async def get_subscription_types(db: AsyncSession = Depends(get_db)):
 @router.get(
     "/preview-change",
     dependencies=[
-        Depends(RoleChecker(["user", "content_manager", "admin", "superadmin"]))
+        Depends(RoleChecker([UserRole.user.value, 
+                             UserRole.content_manager.value, 
+                             UserRole.admin.value, 
+                             UserRole.superadmin.value]))
     ],
 )
 async def preview_subscription_change(
@@ -114,7 +120,9 @@ async def preview_subscription_change(
 
 
 @router.get(
-    "/users-filtered", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))]
+    "/users-filtered", dependencies=[Depends(RoleChecker([
+        UserRole.admin.value, 
+        UserRole.superadmin.value]))]
 )
 async def get_users_filtered(
     has_active: bool, limit: int = 1000, db: AsyncSession = Depends(get_db)
@@ -172,7 +180,8 @@ async def get_users_filtered(
         ]
 
 
-@router.get("", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
+@router.get("", dependencies=[Depends(RoleChecker([UserRole.admin.value, 
+                                                   UserRole.superadmin.value]))])
 async def get_subscriptions(
     page: int = 1,
     limit: int = 10,
@@ -238,7 +247,7 @@ async def get_subscriptions(
                 "status": "Активна"
                 if s.subscribe_finish and s.subscribe_finish >= date.today()
                 else "Истекла",
-                "user": {
+                UserRole.user.value: {
                     "user_id": s.user.user_id,
                     "user_name": s.user.user_name,
                     "user_email": s.user.user_email,
@@ -264,14 +273,15 @@ async def get_subscriptions(
     }
 
 
-@router.post("", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
+@router.post("", dependencies=[Depends(RoleChecker([UserRole.admin.value, 
+                                                    UserRole.superadmin.value]))])
 async def create_subscription(
     data: SubscriptionCreate, db: AsyncSession = Depends(get_db)
 ):
     target_user = await db.get(User, data.user_id)
     if not target_user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
-    if target_user.user_role in ["admin", "superadmin", "content_manager"]:
+    if target_user.user_role in [UserRole.admin.value, UserRole.superadmin.value, UserRole.content_manager.value]:
         raise HTTPException(
             status_code=403, detail="Сотрудникам платформы подписка не требуется"
         )
@@ -353,16 +363,18 @@ async def create_subscription(
 
 
 @router.post(
-    "/change", dependencies=[Depends(RoleChecker(["user", "admin", "superadmin"]))]
+    "/change", dependencies=[Depends(RoleChecker([UserRole.user.value, 
+                                                  UserRole.admin.value, 
+                                                  UserRole.superadmin.value]))]
 )
 async def change_subscription(
     data: SubscriptionChange, db: AsyncSession = Depends(get_db)
 ):
     target_user = await db.get(User, data.user_id)
     if target_user and target_user.user_role in [
-        "admin",
-        "superadmin",
-        "content_manager",
+        UserRole.admin.value,
+        UserRole.superadmin.value,
+        UserRole.content_manager.value,
     ]:
         raise HTTPException(
             status_code=403, detail="Сотрудникам платформы подписка не требуется"
@@ -386,7 +398,8 @@ async def change_subscription(
 
 @router.put(
     "/{user_id}/{type_id}/{start_date}",
-    dependencies=[Depends(RoleChecker(["user", "superadmin"]))],
+    dependencies=[Depends(RoleChecker([UserRole.user.value, 
+                                       UserRole.superadmin.value]))],
 )
 async def update_subscription(
     user_id: int,
@@ -397,9 +410,9 @@ async def update_subscription(
 ):
     target_user = await db.get(User, user_id)
     if target_user and target_user.user_role in [
-        "admin",
-        "superadmin",
-        "content_manager",
+        UserRole.admin.value,
+        UserRole.superadmin.value,
+        UserRole.content_manager.value,
     ]:
         raise HTTPException(
             status_code=403, detail="Сотрудникам платформы подписка не требуется"
@@ -425,7 +438,9 @@ async def update_subscription(
 
 @router.patch(
     "/{user_id}/{type_id}/{start_date}/cancel",
-    dependencies=[Depends(RoleChecker(["user", "admin", "superadmin"]))],
+    dependencies=[Depends(RoleChecker([UserRole.user.value, 
+                                       UserRole.admin.value, 
+                                       UserRole.superadmin.value]))],
 )
 async def cancel_subscription(
     user_id: int, type_id: int, start_date: date, db: AsyncSession = Depends(get_db)
@@ -448,13 +463,16 @@ async def cancel_subscription(
     return {"success": True}
 
 
-@router.post("/buy", dependencies=[Depends(RoleChecker(["user", "superadmin"]))])
+@router.post("/buy", dependencies=[Depends(RoleChecker([UserRole.user.value, 
+                                                        UserRole.superadmin.value]))])
 async def buy_subscription_self_service(
     data: UserSubscriptionBuy,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    if current_user.user_role in ["admin", "superadmin", "content_manager"]:
+    if current_user.user_role in [UserRole.admin.value, 
+                                  UserRole.superadmin.value, 
+                                  UserRole.content_manager.value]:
         raise HTTPException(
             status_code=403, detail="Сотрудникам платформы подписка не требуется"
         )

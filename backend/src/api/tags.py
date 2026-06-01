@@ -7,11 +7,12 @@ from src.schemas.content import TagCreate, TagRead
 from src.models.content import Tag, Content, content_tag_association
 from src.models.viewing import Viewing
 from src.core.security import RoleChecker
+from src.models.user import UserRole
 
 router = APIRouter(tags=["Tags"])
 
 
-@router.get("", dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))])
+@router.get("", dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))])
 async def get_tags(
     search: str = Query(None),
     page: int = Query(1, ge=1),
@@ -77,7 +78,7 @@ async def get_tags(
 
 
 @router.get(
-    "/popular", dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))]
+    "/popular", dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))]
 )
 async def get_popular_tags(
     limit: int = Query(50, ge=1, le=500), db: AsyncSession = Depends(get_db)
@@ -99,7 +100,7 @@ async def get_popular_tags(
 @router.post(
     "",
     response_model=TagRead,
-    dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))],
+    dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))],
 )
 async def create_tag(tag_data: TagCreate, db: AsyncSession = Depends(get_db)):
     existing = await db.execute(select(Tag).where(Tag.tag_name == tag_data.tag_name))
@@ -129,7 +130,7 @@ async def create_tag(tag_data: TagCreate, db: AsyncSession = Depends(get_db)):
 @router.put(
     "/{tag_id}",
     response_model=TagRead,
-    dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))],
+    dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))],
 )
 async def update_tag(tag_id: int, data: TagCreate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
@@ -159,7 +160,7 @@ async def update_tag(tag_id: int, data: TagCreate, db: AsyncSession = Depends(ge
 
 
 @router.delete(
-    "/{tag_id}", dependencies=[Depends(RoleChecker(["content_manager", "superadmin"]))]
+    "/{tag_id}", dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))]
 )
 async def delete_tag(tag_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(

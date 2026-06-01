@@ -9,15 +9,16 @@ from src.models.payment import Payment
 from src.models.viewing import Viewing
 from src.models.subscription import Subscribe, SubscribeType
 from src.core.security import get_current_user, RoleChecker
+from src.models.user import UserRole
 
 router = APIRouter()
 
 
-@router.get("", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
+@router.get("", dependencies=[Depends(RoleChecker([UserRole.admin.value, UserRole.superadmin.value]))])
 async def get_dashboard_statistics(
     current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
 ):
-    if current_user.user_role != "admin" and current_user.user_role != "superadmin":
+    if current_user.user_role != UserRole.admin.value and current_user.user_role != UserRole.superadmin.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Доступ запрещен. Требуются права администратора.",

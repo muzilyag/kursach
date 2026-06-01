@@ -24,6 +24,8 @@ from reportlab.graphics.charts.legends import Legend
 from src.core.database import get_db
 from src.repositories.report_repository import ReportRepository
 
+from src.models.user import UserRole
+
 router = APIRouter()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -287,7 +289,7 @@ def create_pdf_response(
 
 
 @router.get(
-    "/seasonality", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))]
+    "/seasonality", dependencies=[Depends(RoleChecker([UserRole.admin.value, UserRole.superadmin.value]))]
 )
 async def get_seasonality_report(
     start_month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
@@ -311,7 +313,7 @@ async def get_seasonality_report(
     return data
 
 
-@router.get("/activity", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
+@router.get("/activity", dependencies=[Depends(RoleChecker([UserRole.admin.value, UserRole.superadmin.value]))])
 async def get_activity_report(
     subscribe_type_id: Optional[List[int]] = Query(None),
     export: bool = Query(False),
@@ -333,7 +335,7 @@ async def get_activity_report(
     return data
 
 
-@router.get("/revenue", dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
+@router.get("/revenue", dependencies=[Depends(RoleChecker([UserRole.admin.value, UserRole.superadmin.value]))])
 async def get_revenue_report(
     start_date: date = Query(...),
     end_date: date = Query(...),
