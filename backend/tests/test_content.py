@@ -27,7 +27,40 @@ async def sample_content_relations(db_session: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_create_content_with_relations(
+async def test_create_content_unauthorized_returns_401(client: AsyncClient):
+    payload = {
+        "content_name": "Ghost Content",
+        "content_type": "movie",
+        "content_duration": "01:00:00",
+        "content_publish_date": "2025-01-01",
+    }
+    response = await client.post("/content", json=payload)
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_create_content_forbidden_for_normal_user_returns_403(auth_client_user: AsyncClient):
+    payload = {
+        "content_name": "Forbidden Content",
+        "content_type": "movie",
+        "content_duration": "01:00:00",
+        "content_publish_date": "2025-01-01",
+    }
+    response = await auth_client_user.post("/content", json=payload)
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_create_content_missing_fields_returns_422(auth_client_content_manager: AsyncClient):
+    payload = {
+        "content_type": "movie"
+    }
+    response = await auth_client_content_manager.post("/content", json=payload)
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_content_with_relations_success(
     auth_client_content_manager: AsyncClient, sample_content_relations
 ):
     payload = {
@@ -46,7 +79,7 @@ async def test_create_content_with_relations(
 
 
 @pytest.mark.asyncio
-async def test_create_content_no_relations(auth_client_content_manager: AsyncClient):
+async def test_create_content_no_relations_success(auth_client_content_manager: AsyncClient):
     payload = {
         "content_name": "Simple Video",
         "content_type": "video",
@@ -63,7 +96,7 @@ async def test_create_content_no_relations(auth_client_content_manager: AsyncCli
 
 
 @pytest.mark.asyncio
-async def test_get_content_filtered_complex(
+async def test_get_content_filtered_complex_success(
     client: AsyncClient, db_session: AsyncSession, sample_content_relations
 ):
     genre = await db_session.get(Genre, sample_content_relations["genre_id"])
@@ -104,23 +137,30 @@ async def test_get_content_filtered_complex(
 
 
 @pytest.mark.asyncio
-async def test_get_content_filtered_not_found(client: AsyncClient):
-    params = {"genre_ids": [9999], "tag_ids": [9999]}
+async def test_get_content_filtered_not_found_returns_empty(client: AsyncClient):
+    params = {"genre_ids": [99999], "tag_ids": [99999]}
     response = await client.get("/content", params=params)
     assert response.status_code == 200
     assert response.json()["total"] == 0
 
 
 @pytest.mark.asyncio
-async def test_get_content_empty_pagination(client: AsyncClient):
-    params = {"page": 999, "limit": 10}
+async def test_get_content_empty_pagination_returns_empty_items(client: AsyncClient):
+    params = {"page": 9999, "limit": 10}
     response = await client.get("/content", params=params)
     assert response.status_code == 200
     assert len(response.json()["items"]) == 0
 
 
 @pytest.mark.asyncio
-async def test_update_content_add_relations(
+async def test_update_content_unauthorized_returns_401(client: AsyncClient):
+    payload = {"content_name": "Hacked"}
+    response = await client.put("/content/1", json=payload)
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_update_content_add_relations_success(
     auth_client_content_manager: AsyncClient,
     db_session: AsyncSession,
     sample_content_relations,
@@ -150,15 +190,53 @@ async def test_update_content_add_relations(
 
 
 @pytest.mark.asyncio
-async def test_update_content_not_found(auth_client_content_manager: AsyncClient):
+async def test_update_content_clear_all_relations_success(
+    auth_client_content_manager: AsyncClient,
+    db_session: AsyncSession,
+    sample_content_relations,
+):
+    genre = await db_session.get(Genre, sample_content_relations["genre_id"])
+    content = Content(
+        content_name="To Clear Relations",
+        content_type="movie",
+        content_duration=datetime.time(1, 0, 0),
+        content_publish_date=datetime.date(2025, 1, 1),
+        genres=[genre] if genre else [],
+    )
+    db_session.add(content)
+    await db_session.commit()
+
+    payload = {
+        "content_name": "Cleared Relations",
+        "content_type": "movie",
+        "content_duration": "01:30:00",
+        "content_publish_date": "2025-01-01",
+        "genre_ids": [],
+        "tag_ids": [],
+        "copyright_holder_ids": [],
+    }
+    response = await auth_client_content_manager.put(
+        f"/content/{content.content_id}", json=payload
+    )
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_update_content_not_found_returns_404(auth_client_content_manager: AsyncClient):
     payload = {
         "content_name": "Ghost",
         "content_type": "movie",
         "content_duration": "01:00:00",
         "content_publish_date": "2025-01-01",
     }
-    response = await auth_client_content_manager.put("/content/99999", json=payload)
+    response = await auth_client_content_manager.put("/content/999999", json=payload)
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_content_forbidden_for_normal_user_returns_403(auth_client_user: AsyncClient):
+    response = await auth_client_user.delete("/content/1")
+    assert response.status_code == 403
 
 
 @pytest.mark.asyncio
@@ -182,13 +260,19 @@ async def test_delete_content_success(
 
 
 @pytest.mark.asyncio
-async def test_delete_content_not_found(auth_client_content_manager: AsyncClient):
-    response = await auth_client_content_manager.delete("/content/99999")
+async def test_delete_content_not_found_returns_404(auth_client_content_manager: AsyncClient):
+    response = await auth_client_content_manager.delete("/content/999999")
     assert response.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_get_viewing_progress_empty(
+async def test_get_viewing_progress_unauthorized_returns_401(client: AsyncClient):
+    response = await client.get("/content/1/progress")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_viewing_progress_empty_returns_0(
     auth_client_user: AsyncClient, db_session: AsyncSession
 ):
     content = Content(
@@ -206,7 +290,7 @@ async def test_get_viewing_progress_empty(
 
 
 @pytest.mark.asyncio
-async def test_update_viewing_progress_new_and_existing(
+async def test_update_viewing_progress_new_and_existing_success(
     auth_client_user: AsyncClient, db_session: AsyncSession
 ):
     content = Content(
@@ -234,14 +318,14 @@ async def test_update_viewing_progress_new_and_existing(
 
 
 @pytest.mark.asyncio
-async def test_update_viewing_progress_not_found(auth_client_user: AsyncClient):
+async def test_update_viewing_progress_not_found_returns_404(auth_client_user: AsyncClient):
     payload = {"progress": 50}
-    response = await auth_client_user.patch("/content/99999/progress", json=payload)
+    response = await auth_client_user.patch("/content/999999/progress", json=payload)
     assert response.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_get_content_advertising(client: AsyncClient, db_session: AsyncSession):
+async def test_get_content_advertising_success(client: AsyncClient, db_session: AsyncSession):
     tag = Tag(tag_name="AdTag")
     db_session.add(tag)
     await db_session.flush()
@@ -280,27 +364,27 @@ async def test_get_content_advertising(client: AsyncClient, db_session: AsyncSes
 
 
 @pytest.mark.asyncio
-async def test_get_content_advertising_not_found(client: AsyncClient):
-    response = await client.get("/content/99999/advertising")
+async def test_get_content_advertising_not_found_returns_404(client: AsyncClient):
+    response = await client.get("/content/999999/advertising")
     assert response.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_get_genres(client: AsyncClient, sample_content_relations):
+async def test_get_genres_success(client: AsyncClient, sample_content_relations):
     response = await client.get("/content/genres")
     assert response.status_code == 200
     assert len(response.json()) > 0
 
 
 @pytest.mark.asyncio
-async def test_get_tags(client: AsyncClient, sample_content_relations):
+async def test_get_tags_success(client: AsyncClient, sample_content_relations):
     response = await client.get("/content/tags")
     assert response.status_code == 200
     assert len(response.json()) > 0
 
 
 @pytest.mark.asyncio
-async def test_get_copyright_holders(client: AsyncClient, sample_content_relations):
+async def test_get_copyright_holders_success(client: AsyncClient, sample_content_relations):
     response = await client.get("/content/copyright-holders")
     assert response.status_code == 200
     assert len(response.json()) > 0

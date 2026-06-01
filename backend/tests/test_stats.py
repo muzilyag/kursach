@@ -11,7 +11,19 @@ from src.models.viewing import Viewing
 
 
 @pytest.mark.asyncio
-async def test_get_dashboard_statistics_admin_empty(auth_client_admin: AsyncClient):
+async def test_get_dashboard_statistics_unauthorized_returns_401(client: AsyncClient):
+    response = await client.get("/stats")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_dashboard_statistics_forbidden_for_user_returns_403(auth_client_user: AsyncClient):
+    response = await auth_client_user.get("/stats")
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_get_dashboard_statistics_admin_empty_db_success(auth_client_admin: AsyncClient):
     response = await auth_client_admin.get("/stats")
     assert response.status_code == 200
     assert "total_users" in response.json()
@@ -22,7 +34,7 @@ async def test_get_dashboard_statistics_admin_empty(auth_client_admin: AsyncClie
 
 
 @pytest.mark.asyncio
-async def test_get_dashboard_statistics_populated(
+async def test_get_dashboard_statistics_populated_db_success(
     auth_client_admin: AsyncClient, db_session: AsyncSession, normal_user: User
 ):
     sub_type = SubscribeType(
@@ -103,15 +115,3 @@ async def test_get_dashboard_statistics_populated(
         t["tariff_name"] == "Stats Premium"
         for t in data["breakdown"]["revenue_by_tariffs"]
     )
-
-
-@pytest.mark.asyncio
-async def test_get_dashboard_statistics_forbidden(auth_client_user: AsyncClient):
-    response = await auth_client_user.get("/stats")
-    assert response.status_code == 403
-
-
-@pytest.mark.asyncio
-async def test_get_dashboard_statistics_unauthorized(client: AsyncClient):
-    response = await client.get("/stats")
-    assert response.status_code == 401

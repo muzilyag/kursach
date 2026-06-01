@@ -5,8 +5,32 @@ from decimal import Decimal
 
 
 @pytest.mark.asyncio
+async def test_get_activity_report_unauthorized_returns_401(client: AsyncClient):
+    response = await client.get("/reports/activity")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_seasonality_report_forbidden_for_user_returns_403(auth_client_user: AsyncClient):
+    response = await auth_client_user.get(
+        "/reports/seasonality?start_month=2025-01&end_month=2025-12"
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_get_seasonality_report_invalid_date_format_returns_422(
+    auth_client_admin: AsyncClient,
+):
+    response = await auth_client_admin.get(
+        "/reports/seasonality?start_month=25-01&end_month=2025-12"
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
 @patch("src.api.reports.ReportRepository.get_activity_report", new_callable=AsyncMock)
-async def test_get_activity_report(mock_repo, auth_client_admin: AsyncClient):
+async def test_get_activity_report_success(mock_repo, auth_client_admin: AsyncClient):
     mock_repo.return_value = [{"user_id": 1, "avg time (min)": Decimal("120.55")}]
     response = await auth_client_admin.get("/reports/activity")
     assert response.status_code == 200
@@ -16,7 +40,7 @@ async def test_get_activity_report(mock_repo, auth_client_admin: AsyncClient):
 
 @pytest.mark.asyncio
 @patch("src.api.reports.ReportRepository.get_activity_report", new_callable=AsyncMock)
-async def test_get_activity_report_with_filter(
+async def test_get_activity_report_with_filter_success(
     mock_repo, auth_client_admin: AsyncClient
 ):
     mock_repo.return_value = [{"user_id": 1, "avg time (min)": Decimal("120.55")}]
@@ -29,7 +53,7 @@ async def test_get_activity_report_with_filter(
 
 @pytest.mark.asyncio
 @patch("src.api.reports.ReportRepository.get_activity_report", new_callable=AsyncMock)
-async def test_get_activity_report_export_csv(
+async def test_get_activity_report_export_csv_success(
     mock_repo, auth_client_admin: AsyncClient
 ):
     mock_repo.return_value = [{"user_id": 1, "avg time (min)": Decimal("120.55")}]
@@ -40,7 +64,7 @@ async def test_get_activity_report_export_csv(
 
 @pytest.mark.asyncio
 @patch("src.api.reports.ReportRepository.get_activity_report", new_callable=AsyncMock)
-async def test_get_activity_report_export_pdf(
+async def test_get_activity_report_export_pdf_success(
     mock_repo, auth_client_admin: AsyncClient
 ):
     mock_repo.return_value = [{"user_id": 1, "avg time (min)": Decimal("120.55")}]
@@ -53,7 +77,7 @@ async def test_get_activity_report_export_pdf(
 @patch(
     "src.api.reports.ReportRepository.get_seasonality_report", new_callable=AsyncMock
 )
-async def test_get_seasonality_report(mock_repo, auth_client_admin: AsyncClient):
+async def test_get_seasonality_report_success(mock_repo, auth_client_admin: AsyncClient):
     mock_repo.return_value = [{"month": "2025-01", "revenue (rub)": Decimal("1000.00")}]
     response = await auth_client_admin.get(
         "/reports/seasonality?start_month=2025-01&end_month=2025-12"
@@ -65,7 +89,7 @@ async def test_get_seasonality_report(mock_repo, auth_client_admin: AsyncClient)
 @patch(
     "src.api.reports.ReportRepository.get_seasonality_report", new_callable=AsyncMock
 )
-async def test_get_seasonality_report_export_csv(
+async def test_get_seasonality_report_export_csv_success(
     mock_repo, auth_client_admin: AsyncClient
 ):
     mock_repo.return_value = [{"month": "2025-01", "revenue (rub)": Decimal("1000.00")}]
@@ -80,7 +104,7 @@ async def test_get_seasonality_report_export_csv(
 @patch(
     "src.api.reports.ReportRepository.get_seasonality_report", new_callable=AsyncMock
 )
-async def test_get_seasonality_report_export_pdf(
+async def test_get_seasonality_report_export_pdf_success(
     mock_repo, auth_client_admin: AsyncClient
 ):
     mock_repo.return_value = [{"month": "2025-01", "revenue (rub)": Decimal("1000.00")}]
@@ -95,11 +119,10 @@ async def test_get_seasonality_report_export_pdf(
 @patch(
     "src.api.reports.ReportRepository.get_seasonality_report", new_callable=AsyncMock
 )
-async def test_get_seasonality_report_empty_404(
+async def test_get_seasonality_report_empty_returns_404(
     mock_repo, auth_client_admin: AsyncClient
 ):
     mock_repo.return_value = []
-
     response_pdf = await auth_client_admin.get(
         "/reports/seasonality?start_month=3000-01&end_month=3000-12&export=true&format=pdf"
     )
@@ -113,7 +136,7 @@ async def test_get_seasonality_report_empty_404(
 
 @pytest.mark.asyncio
 @patch("src.api.reports.ReportRepository.get_revenue_report", new_callable=AsyncMock)
-async def test_get_revenue_report(mock_repo, auth_client_admin: AsyncClient):
+async def test_get_revenue_report_success(mock_repo, auth_client_admin: AsyncClient):
     mock_repo.return_value = [
         {"date": "2025-01-01", "revenue (rub)": Decimal("500.00")}
     ]
@@ -125,7 +148,7 @@ async def test_get_revenue_report(mock_repo, auth_client_admin: AsyncClient):
 
 @pytest.mark.asyncio
 @patch("src.api.reports.ReportRepository.get_revenue_report", new_callable=AsyncMock)
-async def test_get_revenue_report_export_csv(mock_repo, auth_client_admin: AsyncClient):
+async def test_get_revenue_report_export_csv_success(mock_repo, auth_client_admin: AsyncClient):
     mock_repo.return_value = [
         {"date": "2025-01-01", "revenue (rub)": Decimal("500.00")}
     ]
@@ -138,7 +161,7 @@ async def test_get_revenue_report_export_csv(mock_repo, auth_client_admin: Async
 
 @pytest.mark.asyncio
 @patch("src.api.reports.ReportRepository.get_revenue_report", new_callable=AsyncMock)
-async def test_get_revenue_report_export_pdf(mock_repo, auth_client_admin: AsyncClient):
+async def test_get_revenue_report_export_pdf_success(mock_repo, auth_client_admin: AsyncClient):
     mock_repo.return_value = [
         {"date": "2025-01-01", "revenue (rub)": Decimal("500.00")}
     ]
@@ -151,9 +174,8 @@ async def test_get_revenue_report_export_pdf(mock_repo, auth_client_admin: Async
 
 @pytest.mark.asyncio
 @patch("src.api.reports.ReportRepository.get_revenue_report", new_callable=AsyncMock)
-async def test_get_revenue_report_empty_404(mock_repo, auth_client_admin: AsyncClient):
+async def test_get_revenue_report_empty_returns_404(mock_repo, auth_client_admin: AsyncClient):
     mock_repo.return_value = []
-
     response_pdf = await auth_client_admin.get(
         "/reports/revenue?start_date=3000-01-01&end_date=3000-12-31&export=true&format=pdf"
     )
@@ -166,6 +188,6 @@ async def test_get_revenue_report_empty_404(mock_repo, auth_client_admin: AsyncC
 
 
 @pytest.mark.asyncio
-async def test_get_revenue_report_missing_params(auth_client_admin: AsyncClient):
+async def test_get_revenue_report_missing_params_returns_422(auth_client_admin: AsyncClient):
     response = await auth_client_admin.get("/reports/revenue")
     assert response.status_code == 422

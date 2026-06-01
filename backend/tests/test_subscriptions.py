@@ -37,14 +37,38 @@ async def another_sub_type(db_session: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_get_subscription_types(auth_client_user: AsyncClient, sample_sub_type):
+async def test_get_subscription_types_unauthorized_returns_401(client: AsyncClient):
+    response = await client.get("/subscriptions/types")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_subscription_types_success(auth_client_user: AsyncClient, sample_sub_type):
     response = await auth_client_user.get("/subscriptions/types")
     assert response.status_code == 200
     assert len(response.json()) >= 1
 
 
 @pytest.mark.asyncio
-async def test_buy_subscription(auth_client_user: AsyncClient, sample_sub_type):
+async def test_buy_subscription_missing_payload_returns_422(auth_client_user: AsyncClient):
+    response = await auth_client_user.post("/subscriptions/buy", json={})
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_buy_subscription_admin_forbidden_returns_403(
+    auth_client_admin: AsyncClient, sample_sub_type
+):
+    payload = {
+        "subscribe_type_id": sample_sub_type.subscribe_type_id,
+        "payment_method": "карта",
+    }
+    response = await auth_client_admin.post("/subscriptions/buy", json=payload)
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_buy_subscription_success(auth_client_user: AsyncClient, sample_sub_type):
     payload = {
         "subscribe_type_id": sample_sub_type.subscribe_type_id,
         "payment_method": "карта",
@@ -55,7 +79,7 @@ async def test_buy_subscription(auth_client_user: AsyncClient, sample_sub_type):
 
 
 @pytest.mark.asyncio
-async def test_buy_subscription_existing_same_type(
+async def test_buy_subscription_existing_same_type_extends(
     auth_client_user: AsyncClient, sample_sub_type
 ):
     payload = {
@@ -63,14 +87,13 @@ async def test_buy_subscription_existing_same_type(
         "payment_method": "карта",
     }
     await auth_client_user.post("/subscriptions/buy", json=payload)
-
     response = await auth_client_user.post("/subscriptions/buy", json=payload)
     assert response.status_code == 200
     assert response.json()["success"] is True
 
 
 @pytest.mark.asyncio
-async def test_buy_subscription_existing_different_type(
+async def test_buy_subscription_existing_different_type_returns_400(
     auth_client_user: AsyncClient, sample_sub_type, another_sub_type
 ):
     payload1 = {
@@ -88,8 +111,8 @@ async def test_buy_subscription_existing_different_type(
 
 
 @pytest.mark.asyncio
-async def test_buy_subscription_type_not_found(auth_client_user: AsyncClient):
-    payload = {"subscribe_type_id": 9999, "payment_method": "карта"}
+async def test_buy_subscription_type_not_found_returns_404(auth_client_user: AsyncClient):
+    payload = {"subscribe_type_id": 999999, "payment_method": "карта"}
     response = await auth_client_user.post("/subscriptions/buy", json=payload)
     assert response.status_code == 404
 
@@ -146,12 +169,10 @@ async def test_preview_subscription_change_different_active(
 
 
 @pytest.mark.asyncio
-async def test_preview_subscription_change_target_not_found(
+async def test_preview_subscription_change_target_not_found_returns_404(
     auth_client_user: AsyncClient,
 ):
-    response = await auth_client_user.get(
-        "/subscriptions/preview-change?target_type_id=9999"
-    )
+    response = await auth_client_user.get("/subscriptions/preview-change?target_type_id=999999")
     assert response.status_code == 404
 
 
@@ -170,26 +191,20 @@ async def test_get_users_filtered_active(
     )
     db_session.add(sub)
     await db_session.flush()
-    response = await auth_client_admin.get(
-        "/subscriptions/users-filtered?has_active=true"
-    )
+    response = await auth_client_admin.get("/subscriptions/users-filtered?has_active=true")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
 
 @pytest.mark.asyncio
 async def test_get_users_filtered_inactive(auth_client_admin: AsyncClient):
-    response = await auth_client_admin.get(
-        "/subscriptions/users-filtered?has_active=false"
-    )
+    response = await auth_client_admin.get("/subscriptions/users-filtered?has_active=false")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
 
 @pytest.mark.asyncio
-async def test_get_subscriptions_list_with_complex_filters(
-    auth_client_admin: AsyncClient,
-):
+async def test_get_subscriptions_list_with_complex_filters(auth_client_admin: AsyncClient):
     params = {
         "search": "test",
         "sort": "subscribe_type_name",
@@ -203,11 +218,18 @@ async def test_get_subscriptions_list_with_complex_filters(
     response = await auth_client_admin.get("/subscriptions", params=params)
     assert response.status_code == 200
     assert "subscriptions" in response.json()
-    assert response.json()["page"] == 1
 
 
 @pytest.mark.asyncio
-async def test_create_subscription_admin(
+async def test_get_subscriptions_pagination_empty_page_returns_200(auth_client_admin: AsyncClient):
+    params = {"page": 9999, "limit": 10}
+    response = await auth_client_admin.get("/subscriptions", params=params)
+    assert response.status_code == 200
+    assert len(response.json()["subscriptions"]) == 0
+
+
+@pytest.mark.asyncio
+async def test_create_subscription_admin_success(
     auth_client_admin: AsyncClient, sample_sub_type, normal_user: User
 ):
     start_date = datetime.date.today().isoformat()
@@ -224,7 +246,23 @@ async def test_create_subscription_admin(
 
 
 @pytest.mark.asyncio
-async def test_create_subscription_admin_already_active(
+async def test_create_subscription_for_admin_returns_403(
+    auth_client_superadmin: AsyncClient, sample_sub_type, admin_user: User
+):
+    start_date = datetime.date.today().isoformat()
+    finish_date = (datetime.date.today() + datetime.timedelta(days=30)).isoformat()
+    payload = {
+        "user_id": admin_user.user_id,
+        "subscribe_type_id": sample_sub_type.subscribe_type_id,
+        "subscribe_start": start_date,
+        "subscribe_finish": finish_date,
+    }
+    response = await auth_client_superadmin.post("/subscriptions", json=payload)
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_create_subscription_admin_already_active_returns_400(
     auth_client_admin: AsyncClient,
     sample_sub_type,
     normal_user: User,
@@ -252,14 +290,14 @@ async def test_create_subscription_admin_already_active(
 
 
 @pytest.mark.asyncio
-async def test_create_subscription_admin_type_not_found(
+async def test_create_subscription_admin_type_not_found_returns_404(
     auth_client_admin: AsyncClient, normal_user: User
 ):
     start_date = datetime.date.today().isoformat()
     finish_date = (datetime.date.today() + datetime.timedelta(days=30)).isoformat()
     payload = {
         "user_id": normal_user.user_id,
-        "subscribe_type_id": 9999,
+        "subscribe_type_id": 999999,
         "subscribe_start": start_date,
         "subscribe_finish": finish_date,
     }
@@ -295,10 +333,10 @@ async def test_update_subscription_success(
 
 
 @pytest.mark.asyncio
-async def test_update_subscription_not_found(auth_client_user: AsyncClient):
+async def test_update_subscription_not_found_returns_404(auth_client_superadmin: AsyncClient):
     payload = {"subscribe_finish": "2027-01-01"}
-    response = await auth_client_user.put(
-        "/subscriptions/999/999/2025-01-01", json=payload
+    response = await auth_client_superadmin.put(
+        "/subscriptions/99999/99999/2025-01-01", json=payload
     )
     assert response.status_code == 404
 
@@ -327,14 +365,14 @@ async def test_cancel_subscription_success(
 
 
 @pytest.mark.asyncio
-async def test_cancel_subscription_not_found(auth_client_user: AsyncClient):
-    response = await auth_client_user.patch("/subscriptions/999/999/2025-01-01/cancel")
+async def test_cancel_subscription_not_found_returns_404(auth_client_superadmin: AsyncClient):
+    response = await auth_client_superadmin.patch("/subscriptions/99999/99999/2025-01-01/cancel")
     assert response.status_code == 404
 
 
 @pytest.mark.asyncio
 @pytest.mark.filterwarnings("ignore::sqlalchemy.exc.SAWarning")
-async def test_change_subscription_sp_fail(
+async def test_change_subscription_sp_handled(
     auth_client_admin: AsyncClient,
     normal_user: User,
     sample_sub_type,

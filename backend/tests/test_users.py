@@ -7,7 +7,19 @@ from src.models.subscription import Subscribe, SubscribeType
 
 
 @pytest.mark.asyncio
-async def test_get_users_as_admin(auth_client_admin: AsyncClient):
+async def test_get_users_unauthorized_returns_401(client: AsyncClient):
+    response = await client.get("/users")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_users_forbidden_for_normal_user_returns_403(auth_client_user: AsyncClient):
+    response = await auth_client_user.get("/users")
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_get_users_as_admin_success(auth_client_admin: AsyncClient):
     response = await auth_client_admin.get("/users?page=1&limit=10&search=test")
     assert response.status_code == 200
     data = response.json()
@@ -16,7 +28,7 @@ async def test_get_users_as_admin(auth_client_admin: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_get_users_filtered_by_role_and_sort(auth_client_admin: AsyncClient):
+async def test_get_users_filtered_by_role_and_sort_success(auth_client_admin: AsyncClient):
     response = await auth_client_admin.get(
         "/users?page=1&limit=10&roles=admin&roles=superadmin&sort=user_name&order=desc"
     )
@@ -27,14 +39,20 @@ async def test_get_users_filtered_by_role_and_sort(auth_client_admin: AsyncClien
 
 
 @pytest.mark.asyncio
-async def test_get_me_no_subscription(auth_client_user: AsyncClient):
+async def test_get_me_unauthorized_returns_401(client: AsyncClient):
+    response = await client.get("/users/me")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_me_no_subscription_success(auth_client_user: AsyncClient):
     response = await auth_client_user.get("/users/me")
     assert response.status_code == 200
     assert response.json()["active_subscription"] is None
 
 
 @pytest.mark.asyncio
-async def test_get_me_with_subscription(
+async def test_get_me_with_subscription_success(
     auth_client_user: AsyncClient, normal_user: User, db_session: AsyncSession
 ):
     sub_type = SubscribeType(
@@ -63,7 +81,7 @@ async def test_get_me_with_subscription(
 
 
 @pytest.mark.asyncio
-async def test_patch_me_user(auth_client_user: AsyncClient):
+async def test_patch_me_user_ignores_role_change(auth_client_user: AsyncClient):
     payload = {"user_name": "new_name", "user_role": "admin"}
     response = await auth_client_user.patch("/users/me", json=payload)
     assert response.status_code == 200
@@ -72,14 +90,14 @@ async def test_patch_me_user(auth_client_user: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_patch_me_password(auth_client_user: AsyncClient):
+async def test_patch_me_password_success(auth_client_user: AsyncClient):
     payload = {"user_password": "new_patched_password"}
     response = await auth_client_user.patch("/users/me", json=payload)
     assert response.status_code == 200
 
 
 @pytest.mark.asyncio
-async def test_patch_me_as_admin_keeps_role(auth_client_admin: AsyncClient):
+async def test_patch_me_as_admin_ignores_superadmin_role(auth_client_admin: AsyncClient):
     payload = {"user_role": "superadmin"}
     response = await auth_client_admin.patch("/users/me", json=payload)
     assert response.status_code == 200
@@ -95,33 +113,41 @@ async def test_change_password_success(auth_client_user: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_change_password_wrong_old(auth_client_user: AsyncClient):
+async def test_change_password_wrong_old_returns_400(auth_client_user: AsyncClient):
     payload = {"old_password": "wrong_password", "new_password": "new_secure_password"}
     response = await auth_client_user.patch("/users/me/password", json=payload)
     assert response.status_code == 400
 
 
 @pytest.mark.asyncio
-async def test_delete_me(auth_client_user: AsyncClient):
-    response = await auth_client_user.delete("/users/me")
-    assert response.status_code == 200
+async def test_change_password_missing_fields_returns_422(auth_client_user: AsyncClient):
+    payload = {"new_password": "only_new_password"}
+    response = await auth_client_user.patch("/users/me/password", json=payload)
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
-async def test_get_user_by_id(auth_client_admin: AsyncClient, normal_user: User):
+async def test_delete_me_success(auth_client_user: AsyncClient):
+    response = await auth_client_user.delete("/users/me")
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+
+
+@pytest.mark.asyncio
+async def test_get_user_by_id_success(auth_client_admin: AsyncClient, normal_user: User):
     response = await auth_client_admin.get(f"/users/{normal_user.user_id}")
     assert response.status_code == 200
     assert response.json()["user_email"] == normal_user.user_email
 
 
 @pytest.mark.asyncio
-async def test_get_user_by_id_not_found(auth_client_admin: AsyncClient):
+async def test_get_user_by_id_not_found_returns_404(auth_client_admin: AsyncClient):
     response = await auth_client_admin.get("/users/999999")
     assert response.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_create_user_admin_forbidden_role(auth_client_admin: AsyncClient):
+async def test_create_user_admin_creating_admin_returns_403(auth_client_admin: AsyncClient):
     payload = {
         "user_name": "new_admin",
         "user_email": "new_admin@test.com",
@@ -134,7 +160,7 @@ async def test_create_user_admin_forbidden_role(auth_client_admin: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_create_user_superadmin_creates_admin(
+async def test_create_user_superadmin_creating_admin_success(
     auth_client_superadmin: AsyncClient,
 ):
     payload = {
@@ -162,7 +188,17 @@ async def test_create_user_success(auth_client_admin: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_create_user_duplicate_email(
+async def test_create_user_missing_fields_returns_422(auth_client_admin: AsyncClient):
+    payload = {
+        "user_name": "incomplete_user",
+        "user_role": "user",
+    }
+    response = await auth_client_admin.post("/users", json=payload)
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_user_duplicate_email_returns_400(
     auth_client_admin: AsyncClient, normal_user: User, db_session: AsyncSession
 ):
     payload = {
@@ -178,16 +214,17 @@ async def test_create_user_duplicate_email(
 
 
 @pytest.mark.asyncio
-async def test_update_user_admin(auth_client_admin: AsyncClient, normal_user: User):
+async def test_update_user_success(auth_client_admin: AsyncClient, normal_user: User):
     payload = {"user_name": "updated_by_admin", "user_password": "new_password"}
     response = await auth_client_admin.put(
         f"/users/{normal_user.user_id}", json=payload
     )
     assert response.status_code == 200
+    assert response.json()["user"]["user_name"] == "updated_by_admin"
 
 
 @pytest.mark.asyncio
-async def test_update_user_duplicate_email(
+async def test_update_user_duplicate_email_returns_400(
     auth_client_admin: AsyncClient,
     normal_user: User,
     admin_user: User,
@@ -202,7 +239,7 @@ async def test_update_user_duplicate_email(
 
 
 @pytest.mark.asyncio
-async def test_update_user_not_found(auth_client_admin: AsyncClient):
+async def test_update_user_not_found_returns_404(auth_client_admin: AsyncClient):
     payload = {"user_name": "ghost"}
     response = await auth_client_admin.put("/users/99999", json=payload)
     assert response.status_code == 404
@@ -229,6 +266,6 @@ async def test_delete_user_success(
 
 
 @pytest.mark.asyncio
-async def test_delete_user_not_found(auth_client_admin: AsyncClient):
+async def test_delete_user_not_found_returns_404(auth_client_admin: AsyncClient):
     response = await auth_client_admin.delete("/users/99999")
     assert response.status_code == 404

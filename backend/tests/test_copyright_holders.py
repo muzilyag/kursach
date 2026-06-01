@@ -6,7 +6,19 @@ from src.models.content import CopyrightHolder, Content
 
 
 @pytest.mark.asyncio
-async def test_get_copyright_holders_filters(
+async def test_get_copyright_holders_unauthorized_returns_401(client: AsyncClient):
+    response = await client.get("/copyright-holders")
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_copyright_holders_forbidden_for_normal_user_returns_403(auth_client_user: AsyncClient):
+    response = await auth_client_user.get("/copyright-holders")
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_get_copyright_holders_success_and_filters(
     auth_client_content_manager: AsyncClient, db_session: AsyncSession
 ):
     holder = CopyrightHolder(
@@ -35,7 +47,29 @@ async def test_get_copyright_holders_filters(
 
 
 @pytest.mark.asyncio
-async def test_create_copyright_holder_with_content(
+async def test_get_copyright_holders_pagination_empty_page_returns_200(
+    auth_client_content_manager: AsyncClient
+):
+    response = await auth_client_content_manager.get(
+        "/copyright-holders", params={"page": 9999, "limit": 10}
+    )
+    assert response.status_code == 200
+    assert len(response.json()["items"]) == 0
+
+
+@pytest.mark.asyncio
+async def test_create_copyright_holder_missing_fields_returns_422(
+    auth_client_content_manager: AsyncClient
+):
+    payload = {
+        "copyright_holder_name": "Incomplete Studio"
+    }
+    response = await auth_client_content_manager.post("/copyright-holders", json=payload)
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_copyright_holder_with_content_success(
     auth_client_content_manager: AsyncClient, db_session: AsyncSession
 ):
     content = Content(
@@ -54,15 +88,13 @@ async def test_create_copyright_holder_with_content(
         "copyright_holder_email": "studio@test.com",
         "content_ids": [content.content_id],
     }
-    response = await auth_client_content_manager.post(
-        "/copyright-holders", json=payload
-    )
+    response = await auth_client_content_manager.post("/copyright-holders", json=payload)
     assert response.status_code == 200
     assert response.json()["copyright_holder_name"] == "Test Studio Content"
 
 
 @pytest.mark.asyncio
-async def test_update_copyright_holder_with_content(
+async def test_update_copyright_holder_success(
     auth_client_content_manager: AsyncClient, db_session: AsyncSession
 ):
     holder = CopyrightHolder(
@@ -91,11 +123,26 @@ async def test_update_copyright_holder_with_content(
         f"/copyright-holders/{holder.copyright_holder_id}", json=payload
     )
     assert response.status_code == 200
+    assert response.json()["copyright_holder_name"] == "Updated Studio Content"
+
+
+@pytest.mark.asyncio
+async def test_update_copyright_holder_clear_all_contents(
+    auth_client_content_manager: AsyncClient, db_session: AsyncSession
+):
+    holder = CopyrightHolder(
+        copyright_holder_name="Clear Studio",
+        copyright_holder_phone="+333",
+        copyright_holder_email="clear@test.com",
+    )
+    db_session.add(holder)
+    await db_session.commit()
+    await db_session.refresh(holder)
 
     payload_empty = {
-        "copyright_holder_name": "Updated Studio Empty",
+        "copyright_holder_name": "Clear Studio Empty",
         "copyright_holder_phone": "+333",
-        "copyright_holder_email": "new@test.com",
+        "copyright_holder_email": "clear@test.com",
         "content_ids": [],
     }
     res_empty = await auth_client_content_manager.put(
@@ -105,7 +152,7 @@ async def test_update_copyright_holder_with_content(
 
 
 @pytest.mark.asyncio
-async def test_update_copyright_holder_not_found(
+async def test_update_copyright_holder_not_found_returns_404(
     auth_client_content_manager: AsyncClient,
 ):
     payload = {
@@ -114,14 +161,12 @@ async def test_update_copyright_holder_not_found(
         "copyright_holder_email": "none@test.com",
         "content_ids": [],
     }
-    response = await auth_client_content_manager.put(
-        "/copyright-holders/99999", json=payload
-    )
+    response = await auth_client_content_manager.put("/copyright-holders/999999", json=payload)
     assert response.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_delete_copyright_holder(
+async def test_delete_copyright_holder_success(
     auth_client_content_manager: AsyncClient, db_session: AsyncSession
 ):
     holder = CopyrightHolder(
@@ -136,11 +181,12 @@ async def test_delete_copyright_holder(
         f"/copyright-holders/{holder.copyright_holder_id}"
     )
     assert response.status_code == 200
+    assert response.json()["status"] == "success"
 
 
 @pytest.mark.asyncio
-async def test_delete_copyright_holder_not_found(
+async def test_delete_copyright_holder_not_found_returns_404(
     auth_client_content_manager: AsyncClient,
 ):
-    response = await auth_client_content_manager.delete("/copyright-holders/99999")
+    response = await auth_client_content_manager.delete("/copyright-holders/999999")
     assert response.status_code == 404
