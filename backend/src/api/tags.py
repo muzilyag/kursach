@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy import select, desc, asc, func
+from sqlalchemy import select, desc, asc, func, text
 from src.core.database import get_db
 from src.schemas.content import TagCreate, TagRead
 from src.models.content import Tag, Content, content_tag_association
@@ -171,6 +171,10 @@ async def delete_tag(tag_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Not found")
 
     tag.contents = []
+    await db.commit()
+
+    await db.execute(text("DELETE FROM interest WHERE tag_id = :tid"), {"tid": tag_id})
+    await db.execute(text("DELETE FROM suitable_for WHERE tag_id = :tid"), {"tid": tag_id})
     await db.commit()
 
     await db.delete(tag)
