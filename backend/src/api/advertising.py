@@ -187,7 +187,6 @@ async def update_advertising(
 
 @router.delete(
     "/{ad_id}",
-    status_code=204,
     dependencies=[Depends(RoleChecker([UserRole.content_manager.value, UserRole.superadmin.value]))],
 )
 async def delete_advertising(ad_id: int, db: AsyncSession = Depends(get_db)):
@@ -198,5 +197,14 @@ async def delete_advertising(ad_id: int, db: AsyncSession = Depends(get_db)):
     if not ad:
         raise HTTPException(status_code=404, detail="Advertising not found")
 
+
+    await db.execute(
+        text("DELETE FROM suitable_for WHERE advetising_id = :a_id"),
+        {"a_id": ad_id},
+    )
+    await db.commit()
+
     await db.delete(ad)
     await db.commit()
+
+    return {"status": "success"}

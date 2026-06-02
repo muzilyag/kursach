@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from sqlalchemy import func, or_, Table, Column, Integer
+from sqlalchemy import func, or_, Table, Column, Integer, text
 from typing import List, Optional
 import datetime
 from src.models.user import UserRole
@@ -288,6 +288,13 @@ async def delete_content(content_id: int, db: AsyncSession = Depends(get_db)):
     content = await db.get(Content, content_id)
     if not content:
         raise HTTPException(status_code=404, detail="Контент не найден")
+    
+    await db.execute(
+        text("DELETE FROM viewing WHERE content_id = :c_id"),
+        {"c_id": content_id}
+    )
+    await db.commit()
+
     await db.delete(content)
     await db.commit()
     return {"success": True, "message": "Контент удален"}

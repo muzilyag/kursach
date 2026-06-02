@@ -32,7 +32,7 @@ let tickInterval: ReturnType<typeof setInterval> | null = null
 
 const showAd = ref(false)
 const adData = ref<IAdvertising | null>(null)
-const skipCountdown = ref(5)
+const skipCountdown = ref(0) 
 let adInterval: ReturnType<typeof setInterval> | null = null
 
 const pagesArray = computed(() => {
@@ -102,10 +102,24 @@ const handleMovieClick = async (movie: IContent) => {
   if (!token) {
     try {
       const ads = await ApiService.getContentAdvertising(movie.content_id)
+      const currentAd = ads[Math.floor(Math.random() * ads.length)]
       
-      if (ads && ads.length > 0) {
-        adData.value = ads[0] ?? null
-        skipCountdown.value = 5
+      if (currentAd) {
+        adData.value = currentAd
+
+        let adDurationInSeconds = 5
+        if (currentAd.advertising_duration) {
+          const rawDuration = String(currentAd.advertising_duration)
+          if (rawDuration.includes(':')) {
+            const parts = rawDuration.split(':').map(Number)
+            adDurationInSeconds = (parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0)
+          } else {
+            adDurationInSeconds = parseInt(rawDuration, 10)
+          }
+        }
+        
+        skipCountdown.value = isNaN(adDurationInSeconds) || adDurationInSeconds <= 0 ? 5 : adDurationInSeconds
+
         showAd.value = true
         selectedMovie.value = movie
         document.body.style.overflow = 'hidden'
